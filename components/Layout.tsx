@@ -12,7 +12,8 @@ import {
   ChevronRight,
   PlusCircle,
   Sun,
-  Moon
+  Moon,
+  Bot
 } from 'lucide-react';
 import { useThemeStore } from '../store/useThemeStore';
 
@@ -30,7 +31,11 @@ const SidebarItem = ({ to, icon: Icon, label, active, collapsed }: any) => (
   </Link>
 );
 
-export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ children }: any) => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -51,8 +56,8 @@ export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ childre
     : 'https://i.imgur.com/UVeg7Nr.png';
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden ${theme === 'light' ? 'bg-slate-50' : 'bg-slate-950'} text-slate-200`}>
-      {/* Mobile Sidebar Toggle */}
+    <div className={`flex h-screen w-screen overflow-hidden ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-200'} font-sans`}>
+      {/* Mobile Sidebar Overlay */}
       {mobileOpen && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 lg:hidden" 
@@ -66,7 +71,7 @@ export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ childre
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} 
           lg:translate-x-0 lg:static 
           ${collapsed ? 'w-20' : 'w-72'} 
-          ${theme === 'light' ? 'bg-white border-r border-slate-200' : 'bg-slate-900 border-r border-slate-800/50'}`}
+          ${theme === 'light' ? 'bg-white border-r border-slate-200' : 'bg-slate-900 border-r border-slate-800/50 shadow-2xl'}`}
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-20 px-6 border-b border-slate-800/10">
@@ -89,7 +94,7 @@ export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ childre
             </button>
           </div>
 
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
             {menuItems.map((item) => (
               <SidebarItem 
                 key={item.to}
@@ -149,8 +154,8 @@ export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ childre
         </header>
 
         {/* Content Container */}
-        <main className={`flex-1 overflow-y-auto p-6 lg:p-8 ${theme === 'light' ? 'bg-slate-50/50' : 'bg-slate-950'}`}>
-          <div className="max-w-[1400px] mx-auto h-full">
+        <main className={`flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar ${theme === 'light' ? 'bg-slate-50/50' : 'bg-slate-950'}`}>
+          <div className="max-w-[1400px] mx-auto">
             {children}
           </div>
         </main>
