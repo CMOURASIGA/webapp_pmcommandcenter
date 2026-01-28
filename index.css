@@ -1,57 +1,23 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --bg-body: #020617;
-}
-
-body {
+/* Estilos base para garantir o preenchimento da tela */
+html, body, #root {
+  height: 100%;
   margin: 0;
-  overflow: hidden;
-  background-color: var(--bg-body);
+  padding: 0;
+  background-color: #020617; /* Slate 950 fallback */
 }
 
-.light-theme {
-  --bg-body: #f8fafc;
-}
-
-.light-theme body {
-  background-color: #f8fafc;
-  color: #0f172a;
-}
-
-/* Transições suaves para mudança de tema */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
-}
-
-/* Scrollbar Customization */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dark-theme ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 10px;
-}
-
-.light-theme ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-}
-
-/* Animations */
+/* Animações de entrada do cockpit */
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slide-up {
-  animation: slideUp 0.4s ease-out forwards;
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Transições suaves para a UI */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }

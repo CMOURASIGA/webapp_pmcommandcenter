@@ -12,8 +12,7 @@ import {
   ChevronRight,
   PlusCircle,
   Sun,
-  Moon,
-  Bot
+  Moon
 } from 'lucide-react';
 import { useThemeStore } from '../store/useThemeStore';
 
@@ -27,7 +26,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, collapsed }: any) => (
     }`}
   >
     <Icon size={20} className={active ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'} />
-    {!collapsed && <span className="ml-3 font-bold text-[11px] uppercase tracking-widest">{label}</span>}
+    {!collapsed && <span className="ml-3 font-bold text-[11px] uppercase tracking-widest leading-none">{label}</span>}
   </Link>
 );
 
@@ -56,7 +55,7 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
     : 'https://i.imgur.com/UVeg7Nr.png';
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-200'} font-sans`}>
+    <div className={`flex h-screen w-full overflow-hidden ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-200'}`}>
       {/* Mobile Sidebar Overlay */}
       {mobileOpen && (
         <div 
@@ -111,7 +110,7 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
               className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 ${collapsed ? 'px-0' : 'px-4'}`}
             >
               <PlusCircle size={18} />
-              {!collapsed && <span className="text-[10px] uppercase tracking-widest">Novo Projeto</span>}
+              {!collapsed && <span className="text-[10px] uppercase tracking-widest font-black">Novo Projeto</span>}
             </button>
           </div>
         </div>
@@ -126,12 +125,12 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
               <Menu size={20} />
             </button>
             <div className="flex flex-col">
-              <h1 className={`text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-                {menuItems.find(i => currentPath === i.to)?.label || 'Workspace'}
+              <h1 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                SISTEMA OPERACIONAL
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Status: Online</span>
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                <span className={`text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Status: Online</span>
               </div>
             </div>
           </div>
@@ -143,8 +142,8 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
 
             <div className={`hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
               <div className="text-right">
-                <p className="text-[8px] text-slate-500 font-black uppercase leading-none mb-0.5 tracking-tighter">Project Manager</p>
-                <p className={`text-[10px] font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Admin User</p>
+                <p className="text-[8px] text-slate-500 font-black uppercase leading-none mb-0.5 tracking-tighter">PROJECT MANAGER</p>
+                <p className={`text-[10px] font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>ADMIN USER</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-black text-[10px] shadow-lg">
                 PM
@@ -154,8 +153,8 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Content Container */}
-        <main className={`flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar ${theme === 'light' ? 'bg-slate-50/50' : 'bg-slate-950'}`}>
-          <div className="max-w-[1400px] mx-auto">
+        <main className={`flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar ${theme === 'light' ? 'bg-slate-50/50' : 'bg-slate-950/20'}`}>
+          <div className="max-w-[1400px] mx-auto min-h-full">
             {children}
           </div>
         </main>
