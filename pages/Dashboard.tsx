@@ -8,20 +8,22 @@ import {
   Clock, 
   Plus, 
   ChevronRight,
-  Briefcase
+  Briefcase,
+  // Fix: Added missing Cpu import
+  Cpu
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const StatCard = ({ icon: Icon, label, value, colorClass }: any) => (
-  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-    <div className="flex items-center justify-between mb-3">
-      <div className={`p-2 rounded-lg ${colorClass}`}>
-        <Icon size={20} />
+  <div className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] shadow-sm hover:shadow-emerald-500/5 transition-all">
+    <div className="flex items-center justify-between mb-4">
+      <div className={`p-3 rounded-xl ${colorClass}`}>
+        <Icon size={22} />
       </div>
-      <TrendingUp size={16} className="text-slate-600" />
+      <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Update: Now</div>
     </div>
-    <p className="text-slate-400 text-sm font-medium">{label}</p>
-    <p className="text-2xl font-bold text-slate-100 mt-1">{value}</p>
+    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{label}</p>
+    <p className="text-3xl font-black text-slate-100 mt-1 tracking-tighter">{value}</p>
   </div>
 );
 
@@ -34,125 +36,125 @@ export const Dashboard: React.FC = () => {
   const completedProjects = projects.filter(p => p.status === 'Concluído').length;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-10 animate-slide-up">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-slate-100">Bem-vindo, PM</h2>
-          <p className="text-slate-400 mt-1">Aqui está o resumo dos seus projetos e inteligências.</p>
+          <h2 className="text-4xl font-black text-slate-100 tracking-tighter uppercase">Command Dashboard</h2>
+          <p className="text-slate-500 mt-2 font-bold uppercase text-[11px] tracking-widest">Visão Geral de Operações e Inteligência Artificial</p>
         </div>
         <button 
           onClick={() => navigate('/projects')}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg shadow-emerald-500/20"
+          className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
         >
-          <Plus size={20} />
-          Novo Projeto
+          <Plus size={18} strokeWidth={3} />
+          Nova Iniciativa
         </button>
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           icon={Briefcase} 
-          label="Total de Projetos" 
+          label="Iniciativas Totais" 
           value={projects.length} 
-          colorClass="bg-blue-500/10 text-blue-400" 
+          colorClass="bg-blue-500/10 text-blue-400 border border-blue-500/20" 
         />
         <StatCard 
           icon={Clock} 
-          label="Em Execução" 
+          label="Workspaces Ativos" 
           value={activeProjects} 
-          colorClass="bg-emerald-500/10 text-emerald-400" 
+          colorClass="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
         />
         <StatCard 
           icon={AlertCircle} 
-          label="Em Risco" 
+          label="Zonas de Risco" 
           value={atRiskProjects} 
-          colorClass="bg-red-500/10 text-red-400" 
+          colorClass="bg-red-500/10 text-red-400 border border-red-500/20" 
         />
         <StatCard 
           icon={CheckCircle2} 
-          label="Concluídos" 
+          label="Metas Concluídas" 
           value={completedProjects} 
-          colorClass="bg-indigo-500/10 text-indigo-400" 
+          colorClass="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" 
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Active Projects List */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-100">Projetos Recentes</h3>
-            <Link to="/projects" className="text-sm text-emerald-400 hover:underline flex items-center gap-1">
-              Ver todos <ChevronRight size={14} />
+            <h3 className="text-sm font-black text-slate-100 uppercase tracking-[0.2em] flex items-center gap-2">
+              <TrendingUp size={16} className="text-emerald-500" /> Operações Recentes
+            </h3>
+            <Link to="/projects" className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest flex items-center gap-1 transition-all">
+              Ver Tudo <ChevronRight size={12} />
             </Link>
           </div>
           
-          <div className="space-y-3">
-            {projects.map(p => (
+          <div className="space-y-4">
+            {projects.slice(0, 3).map(p => (
               <Link 
                 key={p.id}
                 to={`/projects/${p.id}`}
-                className="block bg-slate-900 border border-slate-800 p-4 rounded-xl hover:bg-slate-800 transition-colors group"
+                className="block bg-slate-900 border border-slate-800 p-5 rounded-[28px] hover:border-emerald-500/30 transition-all group relative overflow-hidden shadow-sm"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      p.status === 'Em Risco' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+                <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner ${
+                      p.status === 'Em Risco' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                     }`}>
-                      <Briefcase size={20} />
+                      <Briefcase size={22} />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-100 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
-                      <p className="text-sm text-slate-500">{p.methodology} • Início: {p.startDate}</p>
+                    <div className="min-w-0">
+                      <h4 className="font-black text-slate-100 group-hover:text-emerald-400 transition-colors text-lg tracking-tight uppercase">{p.name}</h4>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">{p.methodology} • {p.startDate}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      p.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      p.status === 'Em Risco' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                      'bg-slate-800 text-slate-400 border border-slate-700'
+                  <div className="flex items-center gap-6">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-[9px] text-slate-600 font-black uppercase mb-1">Budget</p>
+                      <p className="text-sm font-black text-slate-200 leading-none">{p.budget || '--'}</p>
+                    </div>
+                    <span className={`text-[9px] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest border transition-all ${
+                      p.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                      p.status === 'Em Risco' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                      'bg-slate-800 text-slate-400 border-slate-700'
                     }`}>
                       {p.status}
                     </span>
-                    <p className="text-xs text-slate-500 mt-2">{p.budget || '--'}</p>
                   </div>
                 </div>
               </Link>
             ))}
             {projects.length === 0 && (
-              <div className="bg-slate-900 border border-dashed border-slate-700 p-8 rounded-xl text-center">
-                <p className="text-slate-500 italic">Nenhum projeto cadastrado.</p>
+              <div className="bg-slate-900 border border-dashed border-slate-700 p-12 rounded-[32px] text-center">
+                <p className="text-slate-500 font-black uppercase text-[10px] tracking-widest">Nenhum workspace operacional detectado.</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Quick Actions / Activity */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-slate-100">Agents Lab</h3>
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4">
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Use as inteligências especializadas para acelerar sua gestão.
+        <div className="lg:col-span-4 space-y-6">
+          <h3 className="text-sm font-black text-slate-100 uppercase tracking-[0.2em] flex items-center gap-2">
+            <Cpu size={16} className="text-blue-500" /> Especialistas Online
+          </h3>
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-6 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all"></div>
+            <p className="text-xs text-slate-400 leading-relaxed font-bold uppercase tracking-tight">
+              Sua equipe de IAs especialistas está pronta para processar dados e gerar artefatos.
             </p>
-            <div className="space-y-2">
-              <Link to="/agents" className="flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 rounded-lg group transition-colors">
-                <span className="text-sm font-medium text-slate-200">PM AI Partner</span>
-                <ChevronRight size={16} className="text-slate-500 group-hover:text-emerald-400" />
-              </Link>
-              <Link to="/agents" className="flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 rounded-lg group transition-colors">
-                <span className="text-sm font-medium text-slate-200">BPMN Master Architect</span>
-                <ChevronRight size={16} className="text-slate-500 group-hover:text-emerald-400" />
-              </Link>
-              <Link to="/agents" className="flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 rounded-lg group transition-colors">
-                <span className="text-sm font-medium text-slate-200">Risk & Decision Analyst</span>
-                <ChevronRight size={16} className="text-slate-500 group-hover:text-emerald-400" />
-              </Link>
+            <div className="space-y-3">
+              {['PM AI Partner', 'BPMN Master Architect', 'Risk Decision Analyst'].map(agent => (
+                <div key={agent} className="flex items-center justify-between p-4 bg-slate-950/50 hover:bg-slate-800/80 border border-slate-800 rounded-2xl group/item transition-all cursor-pointer">
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{agent}</span>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                </div>
+              ))}
             </div>
             <button 
               onClick={() => navigate('/agents')}
-              className="w-full py-2 border border-slate-700 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-slate-400 hover:text-emerald-400 text-sm font-semibold rounded-lg transition-all"
+              className="w-full py-4 border border-slate-700 hover:border-blue-500/50 hover:bg-blue-500/5 text-slate-500 hover:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-sm"
             >
-              Explorar Laboratório
+              Laboratório de Agentes
             </button>
           </div>
         </div>

@@ -1,101 +1,66 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR" class="dark-theme">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PM Command Center</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PM Command Center | AI Cockpit</title>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --bg-body: #020617;
-        --text-base: #f8fafc;
-        transition: background-color 0.3s ease, color 0.3s ease;
+    
+    <!-- Tailwind Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              slate: {
+                950: '#020617',
+              }
+            }
+          }
+        }
       }
-
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: var(--bg-body);
-        color: var(--text-base);
-        margin: 0;
+    </script>
+    <style type="text/tailwindcss">
+      @layer base {
+        body {
+          @apply bg-slate-950 text-slate-200 antialiased;
+        }
       }
-
-      /* --- MODO ESCURO (Garantia de Brilho) --- */
-      .dark-theme .text-slate-100 { color: #ffffff !important; }
-      .dark-theme .text-slate-200 { color: #f1f5f9 !important; }
-      .dark-theme .text-slate-300 { color: #cbd5e1 !important; }
-      .dark-theme .text-slate-400 { color: #94a3b8 !important; }
-      .dark-theme .text-slate-500 { color: #64748b !important; }
-
-      /* --- MODO CLARO (Máximo Contraste) --- */
-      .light-theme {
-        --bg-body: #f1f5f9;
-        --text-base: #020617;
+      @layer components {
+        .glass-panel {
+          @apply bg-slate-900/80 backdrop-blur-xl border border-slate-800/50;
+        }
       }
-
-      .light-theme body {
-        background-color: #f1f5f9;
-        color: #020617;
-      }
-
-      /* Backgrounds do Modo Claro */
-      .light-theme .bg-slate-950 { background-color: #f8fafc !important; }
-      .light-theme .bg-slate-900 { background-color: #ffffff !important; }
-      .light-theme .bg-slate-900\/80 { background-color: rgba(255, 255, 255, 0.95) !important; }
-      .light-theme .bg-slate-900\/50 { background-color: #ffffff !important; }
-      .light-theme .bg-slate-900\/40 { background-color: #ffffff !important; }
-      .light-theme .bg-slate-800 { background-color: #ffffff !important; }
-      .light-theme .bg-slate-800\/50 { background-color: #ffffff !important; }
-      .light-theme .bg-slate-800\/40 { background-color: #f1f5f9 !important; }
-      .light-theme .bg-slate-800\/30 { background-color: #e2e8f0 !important; }
-      .light-theme .bg-slate-950\/50 { background-color: #ffffff !important; }
-
-      /* Bordas do Modo Claro */
-      .light-theme .border-slate-800 { border-color: #cbd5e1 !important; }
-      .light-theme .border-slate-800\/50 { border-color: #cbd5e1 !important; }
-      .light-theme .border-slate-800\/60 { border-color: #cbd5e1 !important; }
-      .light-theme .border-slate-700 { border-color: #cbd5e1 !important; }
-      .light-theme .border-slate-700\/50 { border-color: #cbd5e1 !important; }
-
-      /* Tipografia do Modo Claro (AQUI ESTÁ A SOLUÇÃO) */
-      .light-theme .text-slate-100 { color: #020617 !important; } /* Títulos que eram brancos */
-      .light-theme .text-slate-200 { color: #0f172a !important; }
-      .light-theme .text-slate-300 { color: #1e293b !important; }
-      .light-theme .text-slate-400 { color: #334155 !important; }
-      .light-theme .text-slate-500 { color: #475569 !important; } /* Labels secundárias */
-      .light-theme .text-slate-600 { color: #64748b !important; }
-      .light-theme .text-slate-700 { color: #94a3b8 !important; }
-
-      /* Transições suaves */
-      * {
-        transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
-      }
-
-      ::-webkit-scrollbar { width: 8px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      .light-theme ::-webkit-scrollbar-thumb { background: #cbd5e1; }
-      .dark-theme ::-webkit-scrollbar-thumb { background: #334155; }
-      ::-webkit-scrollbar-thumb:hover { background: #64748b; }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "zustand": "https://esm.sh/zustand@^5.0.10",
+    "zustand/": "https://esm.sh/zustand@^5.0.10/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "zustand/": "https://esm.sh/zustand@^5.0.10/",
-    "zustand": "https://esm.sh/zustand@^5.0.10"
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

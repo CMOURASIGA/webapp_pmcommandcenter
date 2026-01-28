@@ -8,11 +8,8 @@ export async function sendMessageToAgent(
   messages: ChatMessage[],
   settings: AgentSettings
 ): Promise<ChatMessage> {
-  if (!settings.apiKey) {
-    throw new Error("API Key missing. Please configure it in settings.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: settings.apiKey });
+  // Use process.env.API_KEY directly as per guidelines.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const agentDef = AGENTS_MAP[agentId];
   
   const history = messages.slice(0, -1).map(m => ({
@@ -24,7 +21,8 @@ export async function sendMessageToAgent(
 
   try {
     const response = await ai.models.generateContent({
-      model: settings.model || 'gemini-3-flash-preview',
+      // Use 'gemini-3-pro-preview' for complex reasoning tasks in project management.
+      model: 'gemini-3-pro-preview',
       contents: [
         ...history,
         { role: 'user', parts: [{ text: lastMessage }] }
@@ -32,10 +30,11 @@ export async function sendMessageToAgent(
       config: {
         systemInstruction: agentDef.systemPrompt,
         temperature: settings.temperature ?? 0.7,
-        maxOutputTokens: settings.maxTokens ?? 2048,
+        // Removed maxOutputTokens to prevent potential blocking without thinkingBudget.
       },
     });
 
+    // Directly access the text property as per guidelines.
     const text = response.text || "Desculpe, não consegui processar sua solicitação.";
     
     return {

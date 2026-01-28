@@ -11,7 +11,6 @@ import {
   X, 
   ChevronRight,
   PlusCircle,
-  Briefcase,
   Sun,
   Moon
 } from 'lucide-react';
@@ -20,18 +19,18 @@ import { useThemeStore } from '../store/useThemeStore';
 const SidebarItem = ({ to, icon: Icon, label, active, collapsed }: any) => (
   <Link
     to={to}
-    className={`flex items-center p-3 rounded-xl transition-all group ${
+    className={`flex items-center p-3 rounded-xl transition-all group mb-1 ${
       active 
         ? 'bg-emerald-500/10 text-emerald-400 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.2)]' 
         : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
     }`}
   >
     <Icon size={20} className={active ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'} />
-    {!collapsed && <span className="ml-3 font-bold text-xs uppercase tracking-widest">{label}</span>}
+    {!collapsed && <span className="ml-3 font-bold text-[11px] uppercase tracking-widest">{label}</span>}
   </Link>
 );
 
-export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const MainLayout: React.FC<{ children: React.InternalHTML }> = ({ children }: any) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -47,65 +46,50 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
   ];
 
   const currentPath = location.pathname;
-
-  // Seleção dinâmica do logo baseado no tema
   const logoUrl = theme === 'light' 
     ? 'https://i.imgur.com/JU8v63w.png' 
     : 'https://i.imgur.com/UVeg7Nr.png';
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden text-slate-200">
-      {/* Mobile Backdrop */}
+    <div className={`flex h-screen w-screen overflow-hidden ${theme === 'light' ? 'bg-slate-50' : 'bg-slate-950'} text-slate-200`}>
+      {/* Mobile Sidebar Toggle */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden" 
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 lg:hidden" 
           onClick={() => setMobileOpen(false)} 
         />
       )}
 
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 bg-slate-900 border-r border-slate-800/50 transition-all duration-300 transform 
+        className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 transform 
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} 
           lg:translate-x-0 lg:static 
-          ${collapsed ? 'w-24' : 'w-72'}`}
+          ${collapsed ? 'w-20' : 'w-72'} 
+          ${theme === 'light' ? 'bg-white border-r border-slate-200' : 'bg-slate-900 border-r border-slate-800/50'}`}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between h-24 px-6 border-b border-slate-800/50">
+          <div className="flex items-center justify-between h-20 px-6 border-b border-slate-800/10">
             {!collapsed ? (
-              <div className="flex items-center gap-4">
-                <img 
-                  src={logoUrl} 
-                  alt="PM Command Center Logo" 
-                  className="h-14 w-auto object-contain transition-transform hover:scale-105 duration-300"
-                />
+              <div className="flex items-center gap-3">
+                <img src={logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-black text-slate-100 leading-tight tracking-tighter uppercase">PM COMMAND</span>
-                  <span className="text-[10px] font-bold text-emerald-500 tracking-[0.2em] uppercase opacity-80">CENTER</span>
+                  <span className={`text-[11px] font-black leading-tight tracking-tighter uppercase ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>PM COMMAND</span>
+                  <span className="text-[9px] font-bold text-emerald-500 tracking-[0.2em] uppercase opacity-80">CENTER</span>
                 </div>
               </div>
             ) : (
-              <img 
-                src={logoUrl} 
-                alt="Logo" 
-                className="h-11 w-auto mx-auto object-contain transition-transform hover:scale-110 duration-300"
-              />
+              <img src={logoUrl} alt="Logo" className="h-8 w-auto mx-auto object-contain" />
             )}
             <button 
               onClick={() => setCollapsed(!collapsed)}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-500 hover:bg-slate-800 transition-colors ml-2"
+              className={`hidden lg:flex p-1.5 rounded-lg transition-colors ${theme === 'light' ? 'text-slate-400 hover:bg-slate-100' : 'text-slate-500 hover:bg-slate-800'}`}
             >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronRight size={18} className="rotate-180" />}
-            </button>
-            <button 
-              onClick={() => setMobileOpen(false)}
-              className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-800"
-            >
-              <X size={24} />
+              <ChevronRight size={18} className={collapsed ? '' : 'rotate-180'} />
             </button>
           </div>
 
-          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto scrollbar-hide">
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {menuItems.map((item) => (
               <SidebarItem 
                 key={item.to}
@@ -116,70 +100,61 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
             ))}
           </nav>
 
-          <div className="p-6 border-t border-slate-800/50 bg-slate-900/50">
+          <div className="p-4 border-t border-slate-800/10">
             <button 
               onClick={() => navigate('/projects')}
-              className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 active:scale-95 ${collapsed ? 'px-2' : ''}`}
+              className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 ${collapsed ? 'px-0' : 'px-4'}`}
             >
-              <PlusCircle size={20} />
-              {!collapsed && <span className="text-xs uppercase tracking-widest">Novo Projeto</span>}
+              <PlusCircle size={18} />
+              {!collapsed && <span className="text-[10px] uppercase tracking-widest">Novo Projeto</span>}
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Topbar */}
-        <header className="h-20 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-8 z-30">
+        <header className={`h-20 flex items-center justify-between px-8 z-30 flex-shrink-0 ${theme === 'light' ? 'bg-white/80 border-b border-slate-200' : 'bg-slate-900/50 border-b border-slate-800/50'} backdrop-blur-xl`}>
           <div className="flex items-center">
-            <button 
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden mr-4 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-xl"
-            >
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden mr-4 p-2 text-slate-400 hover:text-white bg-slate-800/50 rounded-xl">
               <Menu size={20} />
             </button>
             <div className="flex flex-col">
-              <h1 className="text-sm font-black text-slate-100 uppercase tracking-widest">
-                {menuItems.find(i => currentPath === i.to)?.label || 'Operacional'}
+              <h1 className={`text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
+                {menuItems.find(i => currentPath === i.to)?.label || 'Workspace'}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Sistemas Online</span>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Status: Online</span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
-            {/* Theme Toggle Button */}
-            <button 
-              onClick={toggleTheme}
-              className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700/50 text-slate-400 hover:text-emerald-400 transition-all active:scale-90"
-              title={theme === 'light' ? 'Ativar Modo Escuro' : 'Ativar Modo Claro'}
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          <div className="flex items-center gap-4">
+            <button onClick={toggleTheme} className={`p-2.5 rounded-xl border transition-all active:scale-90 ${theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-emerald-400'}`}>
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
-            {/* User Profile Badge - CONTRASTE GARANTIDO */}
-            <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-sm transition-colors group">
+            <div className={`hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
               <div className="text-right">
-                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Usuário</p>
-                <p className="text-[11px] text-slate-100 font-black uppercase tracking-tight">Project Manager</p>
+                <p className="text-[8px] text-slate-500 font-black uppercase leading-none mb-0.5 tracking-tighter">Project Manager</p>
+                <p className={`text-[10px] font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Admin User</p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg ring-2 ring-white/10 group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-black text-[10px] shadow-lg">
                 PM
               </div>
             </div>
           </div>
         </header>
 
-        {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto bg-slate-950 p-6 lg:p-10">
-          <div className="max-w-7xl mx-auto">
+        {/* Content Container */}
+        <main className={`flex-1 overflow-y-auto p-6 lg:p-8 ${theme === 'light' ? 'bg-slate-50/50' : 'bg-slate-950'}`}>
+          <div className="max-w-[1400px] mx-auto h-full">
             {children}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

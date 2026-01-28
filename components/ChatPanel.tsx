@@ -1,12 +1,11 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Trash2, Settings, AlertCircle, Loader2, Bot, User } from 'lucide-react';
+import { Send, Trash2, AlertCircle, Loader2, Bot, User } from 'lucide-react';
 import { AgentId, ChatMessage } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { sendMessageToAgent } from '../services/geminiService';
 import { AGENTS_MAP } from '../constants';
-import { Link } from 'react-router-dom';
 
 interface ChatPanelProps {
   agentId: AgentId;
@@ -44,11 +43,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
-    if (!settings.apiKey) {
-      setError("Por favor, configure a chave de API nas configurações.");
-      return;
-    }
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -152,11 +146,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             <div>
               <p className="font-black uppercase tracking-widest mb-1">Aviso do Sistema</p>
               <p>{error}</p>
-              {!settings.apiKey && (
-                <Link to="/settings" className="mt-3 inline-flex items-center gap-2 text-red-400 hover:text-red-300 font-black uppercase tracking-widest text-[10px] bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
-                  <Settings size={14} /> Configurar API Key
-                </Link>
-              )}
             </div>
           </div>
         )}

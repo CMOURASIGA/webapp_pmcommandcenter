@@ -44,10 +44,8 @@ export interface ChatMessage {
 export interface AgentSettings {
   provider: string;
   apiBaseUrl?: string;
-  apiKey?: string;
   model: string;
   temperature?: number;
-  maxTokens?: number;
 }
 
 export interface AgentDefinition {
