@@ -1,32 +1,32 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Trash2, AlertCircle, Loader2, Bot, User } from 'lucide-react';
+import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIcon, RefreshCw, Sparkles } from 'lucide-react';
 import { AgentId, ChatMessage } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { sendMessageToAgent } from '../services/geminiService';
 import { AGENTS_MAP } from '../constants';
+import { useNavigate } from 'react-router-dom';
 
 interface ChatPanelProps {
   agentId: AgentId;
   projectId?: string;
 }
 
-// Array constante para evitar novas referências a cada render
 const EMPTY_MESSAGES: ChatMessage[] = [];
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const chatId = useMemo(() => 
     projectId ? `${projectId}-${agentId}` : `standalone-${agentId}`, 
     [projectId, agentId]
   );
 
-  // Seletor estabilizado: Retorna undefined se não existir e usamos EMPTY_MESSAGES constante
   const rawMessages = useChatStore((state) => state.chats[chatId]);
   const messages = rawMessages || EMPTY_MESSAGES;
   
@@ -39,7 +39,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, errorType]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -54,17 +54,82 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     addMessage(chatId, userMessage);
     setInput('');
     setIsLoading(true);
-    setError(null);
+    setErrorType(null);
 
     try {
       const allMessages = [...messages, userMessage];
       const response = await sendMessageToAgent(agentId, allMessages, settings);
       addMessage(chatId, response);
     } catch (err: any) {
-      setError(err.message || "Falha ao obter resposta da IA.");
+      setErrorType(err.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const renderError = () => {
+    if (!errorType) return null;
+
+    let title = "Notificação do Sistema";
+    let message = "Ocorreu um erro inesperado no processamento.";
+    let icon = <AlertTriangle className="text-red-400" size={20} />;
+    let action = null;
+
+    if (errorType === "QUOTA_EXCEEDED") {
+      title = "Capacidade Temporária Atingida";
+      message = "Sua cota de uso do Gemini foi atingida ou seus créditos acabaram. Aguarde alguns minutos antes da próxima requisição ou verifique seu plano de faturamento.";
+      icon = <RefreshCw className="text-amber-400 animate-spin-slow" size={20} />;
+      action = (
+        <button 
+          onClick={() => window.open('https://ai.google.dev/gemini-api/docs/billing', '_blank')}
+          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-amber-400 hover:text-amber-300 transition-colors"
+        >
+          Ver Documentação de Faturamento <Sparkles size={12} />
+        </button>
+      );
+    } else if (errorType === "INVALID_KEY") {
+      title = "Falha de Autenticação";
+      message = "Sua Chave de API parece estar incorreta ou expirada. Verifique as credenciais nas configurações do sistema.";
+      icon = <SettingsIcon className="text-blue-400" size={20} />;
+      action = (
+        <button 
+          onClick={() => navigate('/settings')}
+          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          Ir para Configurações <SettingsIcon size={12} />
+        </button>
+      );
+    } else if (errorType === "API_KEY_MISSING") {
+      title = "Módulo Desconectado";
+      message = "O cockpit exige uma API Key válida para operar. Por favor, insira suas credenciais para continuar.";
+      icon = <Bot className="text-slate-400" size={20} />;
+      action = (
+        <button 
+          onClick={() => navigate('/settings')}
+          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          Configurar Agora
+        </button>
+      );
+    }
+
+    return (
+      <div className="mx-6 mb-6 p-5 bg-slate-950/80 border border-slate-800 rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-300 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-800/10 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-slate-800/20 transition-all"></div>
+        <div className="flex gap-4 relative z-10">
+          <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 h-fit">
+            {icon}
+          </div>
+          <div className="flex-1">
+            <h4 className="text-[10px] font-black text-slate-100 uppercase tracking-[0.2em] mb-1">{title}</h4>
+            <p className="text-[11px] text-slate-500 font-bold uppercase leading-relaxed tracking-tight">
+              {message}
+            </p>
+            {action}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -140,15 +205,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           </div>
         )}
 
-        {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-3xl flex gap-3 text-red-200 text-xs font-medium">
-            <AlertCircle className="flex-shrink-0" size={18} />
-            <div>
-              <p className="font-black uppercase tracking-widest mb-1">Aviso do Sistema</p>
-              <p>{error}</p>
-            </div>
-          </div>
-        )}
+        {renderError()}
       </div>
 
       {/* Input de Comando */}

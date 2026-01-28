@@ -9,12 +9,11 @@ export async function sendMessageToAgent(
   messages: ChatMessage[],
   settings: AgentSettings
 ): Promise<ChatMessage> {
-  // Obtém a chave manual do store se ela existir
   const customKey = useSettingsStore.getState().customApiKey;
   const apiKey = customKey || process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("API Key não configurada. Por favor, insira sua chave na tela de Configurações.");
+    throw new Error("API_KEY_MISSING");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -40,7 +39,7 @@ export async function sendMessageToAgent(
       },
     });
 
-    const text = response.text || "Desculpe, não consegui processar sua solicitação.";
+    const text = response.text || "O sistema não retornou uma resposta válida.";
     
     return {
       id: crypto.randomUUID(),
@@ -49,10 +48,25 @@ export async function sendMessageToAgent(
       timestamp: Date.now(),
     };
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    if (error.message?.includes("API key not valid")) {
-       throw new Error("A chave de API inserida é inválida. Verifique em Configurações.");
+    console.error("Gemini API Error Context:", error);
+    
+    const errorMessage = error.message || "";
+
+    // Tratamento de Cota Excedida (429)
+    if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota")) {
+      throw new Error("QUOTA_EXCEEDED");
     }
-    throw new Error(error.message || "Falha na comunicação com a IA.");
+
+    // Tratamento de Chave Inválida (401/403)
+    if (errorMessage.includes("API key not valid") || errorMessage.includes("INVALID_ARGUMENT")) {
+      throw new Error("INVALID_KEY");
+    }
+
+    // Tratamento de Modelo Ocupado (503/504)
+    if (errorMessage.includes("503") || errorMessage.includes("overloaded")) {
+      throw new Error("MODEL_BUSY");
+    }
+
+    throw new Error(errorMessage || "Erro desconhecido na rede neural.");
   }
 }
