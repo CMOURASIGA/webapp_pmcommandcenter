@@ -1,0 +1,8 @@
+{
+  "name": "PM Command Center",
+  "description": "A comprehensive project management cockpit featuring AI agents for planning, BPMN modeling, UI design, risk analysis, and stakeholder communication.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
