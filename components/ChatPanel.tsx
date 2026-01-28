@@ -4,6 +4,7 @@ import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIc
 import { AgentId, ChatMessage } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useThemeStore } from '../store/useThemeStore';
 import { sendMessageToAgent } from '../services/geminiService';
 import { AGENTS_MAP } from '../constants';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const [errorType, setErrorType] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const theme = useThemeStore((state) => state.theme);
 
   const chatId = useMemo(() => 
     projectId ? `${projectId}-${agentId}` : `standalone-${agentId}`, 
@@ -77,52 +79,41 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
 
     if (errorType === "QUOTA_EXCEEDED") {
       title = "Capacidade Temporária Atingida";
-      message = "Sua cota de uso do Gemini foi atingida ou seus créditos acabaram. Aguarde alguns minutos antes da próxima requisição ou verifique seu plano de faturamento.";
-      icon = <RefreshCw className="text-amber-400 animate-spin-slow" size={20} />;
+      message = "Sua cota de uso do Gemini foi atingida ou seus créditos acabaram. Aguarde alguns minutos antes da próxima requisição.";
+      icon = <RefreshCw className="text-amber-500 animate-spin-slow" size={20} />;
       action = (
         <button 
           onClick={() => window.open('https://ai.google.dev/gemini-api/docs/billing', '_blank')}
-          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-amber-400 hover:text-amber-300 transition-colors"
+          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-amber-500 hover:text-amber-600 transition-colors"
         >
           Ver Documentação de Faturamento <Sparkles size={12} />
         </button>
       );
     } else if (errorType === "INVALID_KEY") {
       title = "Falha de Autenticação";
-      message = "Sua Chave de API parece estar incorreta ou expirada. Verifique as credenciais nas configurações do sistema.";
-      icon = <SettingsIcon className="text-blue-400" size={20} />;
+      message = "Sua Chave de API parece estar incorreta. Verifique as credenciais nas configurações.";
+      icon = <SettingsIcon className="text-blue-500" size={20} />;
       action = (
         <button 
           onClick={() => navigate('/settings')}
-          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 hover:text-blue-300 transition-colors"
+          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-blue-500 hover:text-blue-600 transition-colors"
         >
           Ir para Configurações <SettingsIcon size={12} />
-        </button>
-      );
-    } else if (errorType === "API_KEY_MISSING") {
-      title = "Módulo Desconectado";
-      message = "O cockpit exige uma API Key válida para operar. Por favor, insira suas credenciais para continuar.";
-      icon = <Bot className="text-slate-400" size={20} />;
-      action = (
-        <button 
-          onClick={() => navigate('/settings')}
-          className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-emerald-400 hover:text-emerald-300 transition-colors"
-        >
-          Configurar Agora
         </button>
       );
     }
 
     return (
-      <div className="mx-6 mb-6 p-5 bg-slate-950/80 border border-slate-800 rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-300 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-800/10 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-slate-800/20 transition-all"></div>
+      <div className={`mx-6 mb-6 p-5 border rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-300 relative overflow-hidden group ${
+        theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-950/80 border-slate-800 shadow-black/40'
+      }`}>
         <div className="flex gap-4 relative z-10">
-          <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800 h-fit">
+          <div className={`p-3 rounded-2xl border h-fit ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-900 border-slate-800'}`}>
             {icon}
           </div>
           <div className="flex-1">
-            <h4 className="text-[10px] font-black text-slate-100 uppercase tracking-[0.2em] mb-1">{title}</h4>
-            <p className="text-[11px] text-slate-500 font-bold uppercase leading-relaxed tracking-tight">
+            <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{title}</h4>
+            <p className={`text-[11px] font-bold uppercase leading-relaxed tracking-tight ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
               {message}
             </p>
             {action}
@@ -133,21 +124,27 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative">
+    <div className={`flex flex-col h-full border rounded-[32px] overflow-hidden shadow-2xl relative ${
+      theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+    }`}>
       {/* Header do Agente */}
-      <div className="px-6 py-5 bg-slate-800/40 border-b border-slate-700/50 flex items-center justify-between backdrop-blur-md">
+      <div className={`px-6 py-5 border-b flex items-center justify-between backdrop-blur-md ${
+        theme === 'light' ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'
+      }`}>
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
             <Bot size={22} />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-black text-slate-100 uppercase tracking-tight truncate">{agentDef.displayName}</h3>
+            <h3 className={`text-sm font-black uppercase tracking-tight truncate ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{agentDef.displayName}</h3>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black opacity-60">{agentDef.category}</p>
           </div>
         </div>
         <button 
           onClick={() => clearChat(chatId)}
-          className="p-2.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+          className={`p-2.5 rounded-xl transition-all ${
+            theme === 'light' ? 'text-slate-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-600 hover:text-red-400 hover:bg-red-500/10'
+          }`}
           title="Limpar histórico"
         >
           <Trash2 size={18} />
@@ -161,11 +158,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
       >
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 opacity-40">
-            <div className="w-16 h-16 bg-slate-800 rounded-3xl flex items-center justify-center mb-6 border border-slate-700">
+            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-6 border ${
+              theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'
+            }`}>
               <Bot size={32} className="text-emerald-500" />
             </div>
-            <p className="text-slate-100 font-black uppercase text-xs tracking-widest">Inicie a Sessão</p>
-            <p className="text-[11px] text-slate-500 mt-2 max-w-[200px] leading-relaxed font-medium">Fale com o {agentDef.displayName} para gerar artefatos ou tirar dúvidas.</p>
+            <p className={`font-black uppercase text-xs tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Inicie a Sessão</p>
+            <p className="text-[11px] text-slate-500 mt-2 max-w-[200px] leading-relaxed font-medium">Fale com o {agentDef.displayName} para gerar artefatos.</p>
           </div>
         )}
 
@@ -180,10 +179,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
               }`}>
                 {m.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
               </div>
-              <div className={`p-4 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
+              <div className={`p-4 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm border ${
                 m.role === 'user' 
-                  ? 'bg-blue-600/10 text-blue-100 border border-blue-500/20 rounded-tr-none' 
-                  : 'bg-slate-800/80 text-slate-200 border border-slate-700/50 rounded-tl-none'
+                  ? 'bg-blue-600/10 text-blue-900 dark:text-blue-100 border-blue-500/20 rounded-tr-none' 
+                  : (theme === 'light' ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-slate-800/80 text-slate-200 border-slate-700/50') + ' rounded-tl-none'
               }`}>
                 {m.content}
               </div>
@@ -197,7 +196,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
               <div className="w-8 h-8 rounded-xl bg-emerald-600/50 flex items-center justify-center">
                 <Bot size={16} className="text-white" />
               </div>
-              <div className="p-4 bg-slate-800/50 rounded-3xl rounded-tl-none border border-slate-700/50 text-slate-400 text-xs font-bold uppercase tracking-widest flex items-center gap-3">
+              <div className={`p-4 rounded-3xl rounded-tl-none border text-xs font-bold uppercase tracking-widest flex items-center gap-3 ${
+                theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-slate-800/50 border-slate-700/50 text-slate-400'
+              }`}>
                 <Loader2 size={16} className="animate-spin" />
                 Processando...
               </div>
@@ -209,7 +210,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
       </div>
 
       {/* Input de Comando */}
-      <div className="p-6 bg-slate-800/40 border-t border-slate-700/50 backdrop-blur-md">
+      <div className={`p-6 border-t backdrop-blur-md ${
+        theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'
+      }`}>
         <div className="flex gap-3">
           <textarea
             value={input}
@@ -221,12 +224,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
               }
             }}
             placeholder={`Comando para ${agentDef.displayName}...`}
-            className="flex-1 bg-slate-950 border border-slate-700 rounded-2xl px-5 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none h-14 transition-all"
+            className={`flex-1 border rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none h-14 transition-all ${
+              theme === 'light' 
+                ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' 
+                : 'bg-slate-950 border-slate-700 text-slate-200 placeholder-slate-600'
+            }`}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="w-14 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-2xl transition-all flex items-center justify-center shadow-lg shadow-emerald-600/20 active:scale-95 flex-shrink-0"
+            className="w-14 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-2xl transition-all flex items-center justify-center shadow-lg shadow-emerald-600/20 active:scale-95 flex-shrink-0"
           >
             <Send size={20} strokeWidth={2.5} />
           </button>
