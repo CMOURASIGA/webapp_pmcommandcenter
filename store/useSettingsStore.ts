@@ -5,7 +5,9 @@ import { AgentId, AgentSettings } from '../types';
 
 interface SettingsState {
   settingsByAgent: Record<AgentId, AgentSettings>;
+  customApiKey: string;
   updateAgentSettings: (agentId: AgentId, partial: Partial<AgentSettings>) => void;
+  setCustomApiKey: (key: string) => void;
 }
 
 const defaultSettings: AgentSettings = {
@@ -26,6 +28,7 @@ export const useSettingsStore = create<SettingsState>()(
         metricsReportingArchitect: { ...defaultSettings },
         meetingDocsCopilot: { ...defaultSettings },
       },
+      customApiKey: '',
       updateAgentSettings: (agentId, partial) =>
         set((state) => ({
           settingsByAgent: {
@@ -33,6 +36,7 @@ export const useSettingsStore = create<SettingsState>()(
             [agentId]: { ...state.settingsByAgent[agentId], ...partial },
           },
         })),
+      setCustomApiKey: (key) => set({ customApiKey: key }),
     }),
     { name: 'pm-command-center-settings' }
   )

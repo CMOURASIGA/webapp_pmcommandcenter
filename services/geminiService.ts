@@ -2,14 +2,22 @@
 import { GoogleGenAI } from "@google/genai";
 import { AgentId, ChatMessage, AgentSettings } from "../types";
 import { AGENTS_MAP } from "../constants";
+import { useSettingsStore } from "../store/useSettingsStore";
 
 export async function sendMessageToAgent(
   agentId: AgentId,
   messages: ChatMessage[],
   settings: AgentSettings
 ): Promise<ChatMessage> {
-  // Use process.env.API_KEY directly as per guidelines.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Obtém a chave manual do store se ela existir
+  const customKey = useSettingsStore.getState().customApiKey;
+  const apiKey = customKey || process.env.API_KEY;
+
+  if (!apiKey) {
+    throw new Error("API Key não configurada. Por favor, insira sua chave na tela de Configurações.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const agentDef = AGENTS_MAP[agentId];
   
   const history = messages.slice(0, -1).map(m => ({
@@ -21,8 +29,7 @@ export async function sendMessageToAgent(
 
   try {
     const response = await ai.models.generateContent({
-      // Use 'gemini-3-pro-preview' for complex reasoning tasks in project management.
-      model: 'gemini-3-pro-preview',
+      model: settings.model || 'gemini-3-pro-preview',
       contents: [
         ...history,
         { role: 'user', parts: [{ text: lastMessage }] }
@@ -30,11 +37,9 @@ export async function sendMessageToAgent(
       config: {
         systemInstruction: agentDef.systemPrompt,
         temperature: settings.temperature ?? 0.7,
-        // Removed maxOutputTokens to prevent potential blocking without thinkingBudget.
       },
     });
 
-    // Directly access the text property as per guidelines.
     const text = response.text || "Desculpe, não consegui processar sua solicitação.";
     
     return {
@@ -45,6 +50,9 @@ export async function sendMessageToAgent(
     };
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error(error.message || "Failed to communicate with AI");
+    if (error.message?.includes("API key not valid")) {
+       throw new Error("A chave de API inserida é inválida. Verifique em Configurações.");
+    }
+    throw new Error(error.message || "Falha na comunicação com a IA.");
   }
 }
