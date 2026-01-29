@@ -11,17 +11,18 @@ import {
   ShieldCheck,
   Cpu,
   Bot,
-  FolderKanban,
-  Target,
-  Layers,
-  MousePointer2,
   ArrowRight,
   LayoutDashboard,
   Settings as SettingsIcon,
-  MessageSquare,
-  Workflow,
-  Sparkles
+  Sparkles,
+  Key,
+  ExternalLink,
+  Settings2,
+  BrainCircuit,
+  Wand2,
+  Database
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const AgentDocCard = ({ agent, isLight }: any) => {
   const [copied, setCopied] = React.useState(false);
@@ -85,105 +86,83 @@ export const Help: React.FC = () => {
     <div className="space-y-16 md:space-y-24 pb-20 max-w-6xl mx-auto animate-in fade-in duration-700">
       <header className="text-center space-y-6 px-4">
         <div className="inline-flex p-5 bg-emerald-500/10 text-emerald-500 rounded-[32px] shadow-2xl shadow-emerald-500/10 mb-4">
-          <HelpCircle size={48} className="md:size-64" />
+          <HelpCircle size={48} />
         </div>
-        <h2 className={`text-4xl md:text-6xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Central de Comando</h2>
+        <h2 className={`text-4xl md:text-6xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Manual do Operador</h2>
         <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-xl font-bold leading-relaxed uppercase tracking-tight">
-          Guia completo para dominar a inteligência artificial na gestão dos seus projetos.
+          Configure o "DNA" de cada especialista e defina como o cockpit deve processar suas ordens.
         </p>
       </header>
 
-      {/* Como Funciona o Cockpit */}
-      <section className="space-y-8 px-4">
-        <div className={`flex items-center gap-4 border-b pb-6 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
-          <LayoutDashboard className="text-emerald-500" size={32} />
-          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Arquitetura do Sistema</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { 
-              icon: LayoutDashboard, 
-              title: 'Dashboard', 
-              desc: 'Visão executiva e rápida de todos os projetos em andamento e zonas de risco.' 
-            },
-            { 
-              icon: FolderKanban, 
-              title: 'Projetos', 
-              desc: 'Lista central onde você cria e gerencia os workspaces individuais de cada iniciativa.' 
-            },
-            { 
-              icon: Cpu, 
-              title: 'Agents Lab', 
-              desc: 'Ambiente sandbox para falar diretamente com qualquer IA sem estar vinculado a um projeto.' 
-            },
-            { 
-              icon: SettingsIcon, 
-              title: 'Configurações', 
-              desc: 'Onde você insere sua API Key do Gemini e ajusta o comportamento de cada agente.' 
-            }
-          ].map((item, i) => (
-            <div key={i} className={`p-8 rounded-[32px] border transition-all ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
-              <item.icon size={32} className="text-emerald-500 mb-6" />
-              <h4 className={`text-sm font-black uppercase tracking-widest mb-3 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>{item.title}</h4>
-              <p className="text-[11px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Fluxo de Trabalho em Projetos */}
+      {/* Orquestração Granular */}
       <section className="space-y-12 px-4">
         <div className={`flex items-center gap-4 border-b pb-6 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
-          <Target className="text-emerald-500" size={32} />
-          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Workflow de Projetos</h3>
+          <BrainCircuit className="text-emerald-500" size={32} />
+          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Definindo a Inteligência</h3>
         </div>
 
-        <div className="space-y-6">
-          <div className={`p-8 md:p-12 rounded-[48px] border relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <div className="inline-flex px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Passo a Passo</div>
-                <h4 className={`text-3xl font-black uppercase tracking-tighter ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>O Poder do Workspace</h4>
-                <p className={`text-sm leading-relaxed font-bold uppercase tracking-tight ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                  Ao abrir um projeto, você entra no **Workspace**. Lá, o sistema divide a inteligência em abas especializadas. 
-                  O chat lateral sempre carrega o agente correspondente à aba selecionada.
-                </p>
-                <div className="space-y-4">
-                  {[
-                    { icon: Workflow, text: 'Aba BPMN: Especialista em processos modela seus fluxos.' },
-                    { icon: MessageSquare, text: 'Aba Comms: Gera e-mails e updates para stakeholders.' },
-                    { icon: Sparkles, text: 'Aba Design: Transforma ideias em fluxos de telas detalhados.' }
-                  ].map((feat, idx) => (
-                    <div key={idx} className="flex items-center gap-4">
-                      <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg"><feat.icon size={18} /></div>
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{feat.text}</span>
-                    </div>
-                  ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className={`p-8 md:p-12 rounded-[48px] border relative overflow-hidden flex flex-col justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
+                  <Database size={24} />
+                </div>
+                <h4 className={`text-xl font-black uppercase tracking-tighter ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Especialistas Agnósticos</h4>
+              </div>
+              <p className={`text-xs font-bold uppercase leading-relaxed tracking-tight ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                No Cockpit, cada agente pode ter sua própria configuração de API. Você pode usar o <b>Google AI Studio</b> globalmente ou definir modelos específicos para tarefas diferentes:
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
+                  <Wand2 size={14} /> UI Designer -> Gemini 2.5 Flash Image (Design)
+                </li>
+                <li className="flex items-center gap-3 text-[10px] font-black uppercase text-blue-500 bg-blue-500/5 p-3 rounded-xl border border-blue-500/10">
+                  <Zap size={14} /> PM Partner -> Gemini 3 Pro (Raciocínio)
+                </li>
+              </ul>
+            </div>
+            <div className="mt-8">
+              <Link to="/settings" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
+                Definir APIs Agora <Settings2 size={16} />
+              </Link>
+            </div>
+          </div>
+
+          <div className={`p-8 md:p-12 rounded-[48px] border relative overflow-hidden ${isLight ? 'bg-slate-50 border-slate-100' : 'bg-slate-950 border-slate-800'}`}>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
+                  <Key size={24} />
+                </div>
+                <h4 className={`text-xl font-black uppercase tracking-tighter ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Busca no AI Studio</h4>
+              </div>
+              <p className={`text-[11px] font-bold uppercase leading-relaxed tracking-tight ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                Para que as ferramentas funcionem, você deve buscar sua chave no portal do Google. No cockpit, você pode:
+              </p>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black flex-shrink-0">1</div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Acessar o Google AI Studio e gerar uma chave gratuita ou paga.</p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black flex-shrink-0">2</div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Usar o botão "Selecionar Chave Cloud" para vincular projetos com faturamento ativo.</p>
                 </div>
               </div>
-              <div className={`rounded-3xl border p-4 aspect-video flex items-center justify-center relative ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'}`}>
-                 <div className="text-center space-y-2 opacity-40">
-                    <LayoutDashboard size={48} className="mx-auto text-emerald-500" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Interface do Workspace</p>
-                 </div>
-                 {/* Elementos decorativos simulando a UI */}
-                 <div className="absolute top-4 left-4 right-4 h-6 bg-slate-400/10 rounded-lg"></div>
-                 <div className="absolute top-14 left-4 w-1/4 bottom-4 bg-slate-400/10 rounded-lg"></div>
-                 <div className="absolute top-14 right-4 w-2/3 bottom-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex items-center justify-center">
-                    <MessageSquare size={24} className="text-emerald-500 animate-pulse" />
-                 </div>
-              </div>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-blue-500 hover:underline">
+                Portal Google AI Studio <ExternalLink size={14} />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Manual dos Especialistas */}
+      {/* Manual dos Agentes */}
       <section className="space-y-12 px-4">
         <div className={`flex items-center gap-4 border-b pb-6 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
           <BookOpen className="text-emerald-500" size={32} />
-          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Manual dos Agentes</h3>
+          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Manual dos Especialistas</h3>
         </div>
         
         <div className="grid grid-cols-1 gap-8">
@@ -193,20 +172,20 @@ export const Help: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer Mobile Friendly */}
+      {/* Footer Final */}
       <div className={`mx-4 p-8 md:p-16 rounded-[40px] md:rounded-[60px] text-center space-y-8 shadow-2xl relative overflow-hidden group ${isLight ? 'bg-white border border-slate-200' : 'bg-slate-900 border border-slate-800'}`}>
         <div className={`absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full -mr-48 -mt-48 transition-all ${isLight ? 'bg-emerald-500/5' : 'bg-emerald-500/10'}`}></div>
-        <h4 className={`text-3xl md:text-4xl font-black tracking-tight uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Pronto para Decolar?</h4>
+        <h4 className={`text-3xl md:text-4xl font-black tracking-tight uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Configuração Concluída?</h4>
         <p className="text-slate-500 max-w-lg mx-auto font-black uppercase text-[10px] md:text-xs tracking-[0.2em] leading-relaxed">
-          Tudo o que você precisa é da sua API Key configurada. Seus projetos esperam por você.
+          Salve suas configurações na tela de Inteligência para que as ferramentas usem os provedores corretos.
         </p>
         <div className="pt-6 flex flex-col sm:flex-row justify-center gap-4 md:gap-6 relative z-10">
-          <a href="/#/projects" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all shadow-2xl shadow-emerald-600/20 active:scale-95 uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-3">
+          <Link to="/settings" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all shadow-2xl shadow-emerald-600/20 active:scale-95 uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-3">
+            Ir para Configurações <Settings2 size={20} />
+          </Link>
+          <Link to="/projects" className={`font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all active:scale-95 uppercase tracking-widest text-[10px] md:text-xs border flex items-center justify-center gap-3 ${isLight ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>
             Acessar Projetos <ArrowRight size={20} />
-          </a>
-          <a href="/#/settings" className={`font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all active:scale-95 uppercase tracking-widest text-[10px] md:text-xs border flex items-center justify-center gap-3 ${isLight ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'}`}>
-            Configurar API
-          </a>
+          </Link>
         </div>
       </div>
     </div>

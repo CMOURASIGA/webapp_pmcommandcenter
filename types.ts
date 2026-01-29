@@ -42,10 +42,11 @@ export interface ChatMessage {
 }
 
 export interface AgentSettings {
-  provider: string;
-  apiBaseUrl?: string;
+  provider: 'google-ai-studio' | 'custom-api';
   model: string;
   temperature?: number;
+  useDedicatedKey?: boolean;
+  apiKey?: string; // Chave manual por especialista
 }
 
 export interface AgentDefinition {

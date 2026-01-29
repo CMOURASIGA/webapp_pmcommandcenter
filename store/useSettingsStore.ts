@@ -11,7 +11,8 @@ interface SettingsState {
 }
 
 const defaultSettings: AgentSettings = {
-  provider: 'Google Gemini',
+  // Fix: Changed 'Google Gemini' to 'google-ai-studio' to align with the type definition in types.ts
+  provider: 'google-ai-studio',
   model: 'gemini-3-pro-preview',
   temperature: 0.7,
 };

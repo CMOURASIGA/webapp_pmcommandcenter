@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIcon, RefreshCw, Sparkles } from 'lucide-react';
+import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIcon, RefreshCw, Sparkles, Activity, Zap } from 'lucide-react';
 import { AgentId, ChatMessage } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -36,6 +36,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const clearChat = useChatStore((state) => state.clearChat);
   const settings = useSettingsStore((state) => state.settingsByAgent[agentId]);
   const agentDef = AGENTS_MAP[agentId];
+
+  // Simulador de densidade de contexto para educar o usuário sobre o uso de tokens
+  const contextDensity = useMemo(() => {
+    const count = messages.length;
+    if (count === 0) return { label: 'Vazio', color: 'text-slate-400', icon: Activity, description: 'Sem histórico. Performance máxima.' };
+    if (count < 5) return { label: 'Otimizado', color: 'text-emerald-500', icon: Zap, description: 'Contexto ideal para respostas precisas.' };
+    if (count < 12) return { label: 'Médio', color: 'text-amber-500', icon: Activity, description: 'Volume moderado de histórico.' };
+    return { label: 'Pesado', color: 'text-red-500', icon: AlertTriangle, description: 'Contexto longo. Considere resetar para economizar tokens.' };
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -79,14 +88,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
 
     if (errorType === "QUOTA_EXCEEDED") {
       title = "Capacidade Temporária Atingida";
-      message = "Sua cota de uso do Gemini foi atingida ou seus créditos acabaram. Aguarde alguns minutos antes da próxima requisição.";
+      message = "Sua cota de uso do Gemini foi atingida. Limpar o chat pode ajudar a reduzir o tamanho das próximas requisições.";
       icon = <RefreshCw className="text-amber-500 animate-spin-slow" size={20} />;
       action = (
         <button 
-          onClick={() => window.open('https://ai.google.dev/gemini-api/docs/billing', '_blank')}
+          onClick={() => clearChat(chatId)}
           className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase text-amber-500 hover:text-amber-600 transition-colors"
         >
-          Ver Documentação de Faturamento <Sparkles size={12} />
+          Limpar Contexto Atual <Trash2 size={12} />
         </button>
       );
     } else if (errorType === "INVALID_KEY") {
@@ -128,27 +137,44 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
       theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
     }`}>
       {/* Header do Agente */}
-      <div className={`px-6 py-5 border-b flex items-center justify-between backdrop-blur-md ${
+      <div className={`px-6 py-4 border-b flex items-center justify-between backdrop-blur-md ${
         theme === 'light' ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'
       }`}>
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
-            <Bot size={22} />
+          <div className="p-2.5 bg-emerald-500/10 rounded-2xl text-emerald-500">
+            <Bot size={20} />
           </div>
           <div className="min-w-0">
-            <h3 className={`text-sm font-black uppercase tracking-tight truncate ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{agentDef.displayName}</h3>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black opacity-60">{agentDef.category}</p>
+            <h3 className={`text-[11px] font-black uppercase tracking-tight truncate ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{agentDef.displayName}</h3>
+            
+            {/* Monitor de Contexto */}
+            <div className="flex items-center gap-2 mt-0.5" title={contextDensity.description}>
+              <contextDensity.icon size={10} className={contextDensity.color} />
+              <span className={`text-[8px] font-black uppercase tracking-widest ${contextDensity.color}`}>
+                Contexto: {contextDensity.label}
+              </span>
+            </div>
           </div>
         </div>
-        <button 
-          onClick={() => clearChat(chatId)}
-          className={`p-2.5 rounded-xl transition-all ${
-            theme === 'light' ? 'text-slate-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-600 hover:text-red-400 hover:bg-red-500/10'
-          }`}
-          title="Limpar histórico"
-        >
-          <Trash2 size={18} />
-        </button>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              if (messages.length > 0) {
+                clearChat(chatId);
+              }
+            }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+              theme === 'light' 
+                ? 'text-slate-400 border-slate-200 hover:text-red-500 hover:border-red-200 hover:bg-red-50' 
+                : 'text-slate-500 border-slate-700 hover:text-red-400 hover:border-red-900/50 hover:bg-red-500/10'
+            }`}
+            title="Reiniciar contexto para economizar tokens"
+          >
+            <Trash2 size={14} />
+            <span className="hidden sm:inline">Reset Context</span>
+          </button>
+        </div>
       </div>
 
       {/* Área de Mensagens */}
@@ -163,8 +189,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             }`}>
               <Bot size={32} className="text-emerald-500" />
             </div>
-            <p className={`font-black uppercase text-xs tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Inicie a Sessão</p>
-            <p className="text-[11px] text-slate-500 mt-2 max-w-[200px] leading-relaxed font-medium">Fale com o {agentDef.displayName} para gerar artefatos.</p>
+            <p className={`font-black uppercase text-xs tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Sessão Limpa</p>
+            <p className="text-[11px] text-slate-500 mt-2 max-w-[200px] leading-relaxed font-medium">Histórico vazio. Otimização máxima de performance e custos ativa.</p>
           </div>
         )}
 

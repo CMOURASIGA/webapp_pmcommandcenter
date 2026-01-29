@@ -20,7 +20,8 @@ import {
   TrendingUp,
   ClipboardList,
   Eye,
-  Calendar
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 import { ChatPanel } from '../components/ChatPanel';
 import { AgentId } from '../types';
@@ -55,6 +56,7 @@ export const ProjectWorkspace: React.FC = () => {
   const project = useMemo(() => projects.find(p => p.id === id), [projects, id]);
   
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const clearChat = useChatStore((state) => state.clearChat);
 
   const activeAgent = useMemo(() => 
     TABS.find(t => t.id === activeTab) || TABS[0], 
@@ -65,6 +67,17 @@ export const ProjectWorkspace: React.FC = () => {
     `${id}-${activeTab === 'overview' ? 'pmAiPartner' : activeAgent.agentId}`,
     [id, activeTab, activeAgent]
   );
+
+  // Função para limpar todos os chats do projeto de uma vez
+  const handleGlobalReset = () => {
+    if (confirm("Deseja limpar o histórico de TODOS os especialistas deste projeto? Isso economiza tokens e reinicia o contexto da IA para novas diretrizes.")) {
+      TABS.forEach(tab => {
+        const tid = `${id}-${tab.id === 'overview' ? 'pmAiPartner' : tab.agentId}`;
+        clearChat(tid);
+      });
+      alert("Sistema de IA reiniciado. Contexto limpo.");
+    }
+  };
 
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
 
@@ -165,7 +178,7 @@ export const ProjectWorkspace: React.FC = () => {
             <div className="space-y-2">
               <h3 className={`text-xl font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Aguardando Documentação</h3>
               <p className="text-sm text-slate-500 max-w-sm font-medium">
-                Este espaço será preenchido conforme o chat evolui.
+                Este espaço será preenchido conforme o chat evolui e o especialista gera artefatos.
               </p>
             </div>
           </div>
@@ -176,9 +189,23 @@ export const ProjectWorkspace: React.FC = () => {
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       <header className="flex flex-col gap-6">
-        <button onClick={() => navigate('/projects')} className="group flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-all text-xs font-black uppercase tracking-widest w-fit">
-          <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar aos Projetos
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <button onClick={() => navigate('/projects')} className="group flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-all text-xs font-black uppercase tracking-widest w-fit">
+            <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar aos Projetos
+          </button>
+          
+          <button 
+            onClick={handleGlobalReset}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+              theme === 'light' 
+                ? 'text-slate-400 border-slate-200 hover:text-red-500 hover:bg-red-50' 
+                : 'text-slate-500 border-slate-700 hover:text-red-400 hover:bg-red-500/10'
+            }`}
+            title="Limpa o contexto de todos os especialistas deste projeto"
+          >
+            <RefreshCw size={14} /> Reiniciar Sistema de IA
+          </button>
+        </div>
         
         <div className={`border p-8 rounded-[40px] shadow-2xl relative overflow-hidden transition-colors group ${
           theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
@@ -233,13 +260,19 @@ export const ProjectWorkspace: React.FC = () => {
           <div className={`border p-6 rounded-[32px] border-l-4 border-l-emerald-600 shadow-xl transition-colors ${
             theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'
           }`}>
-             <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${theme === 'light' ? 'bg-slate-50 text-emerald-600 border border-slate-100' : 'bg-slate-800 text-emerald-400'}`}>
-                  <Eye size={22} />
+             <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-2xl ${theme === 'light' ? 'bg-slate-50 text-emerald-600 border border-slate-100' : 'bg-slate-800 text-emerald-400'}`}>
+                    <Eye size={22} />
+                  </div>
+                  <div>
+                    <h4 className={`text-sm font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Monitoramento Operacional</h4>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Artefatos e insights gerados por IA</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className={`text-sm font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Monitoramento Operacional</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Artefatos e insights gerados por IA</p>
+                <div className="hidden md:flex flex-col items-end">
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Sincronizado</span>
+                  <span className="text-[8px] text-slate-500 uppercase">Live Engine Active</span>
                 </div>
              </div>
           </div>

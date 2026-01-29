@@ -2,20 +2,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { AgentId, ChatMessage, AgentSettings } from "../types";
 import { AGENTS_MAP } from "../constants";
-import { useSettingsStore } from "../store/useSettingsStore";
 
 export async function sendMessageToAgent(
   agentId: AgentId,
   messages: ChatMessage[],
   settings: AgentSettings
 ): Promise<ChatMessage> {
-  const customKey = useSettingsStore.getState().customApiKey;
-  const apiKey = customKey || process.env.API_KEY;
+  // PRIORIDADE: 1. Chave manual do agente | 2. Chave global do ambiente
+  const apiKey = settings.apiKey || process.env.API_KEY;
 
   if (!apiKey) {
     throw new Error("API_KEY_MISSING");
   }
 
+  // Criamos uma nova instância para garantir o uso da chave configurada para ESTE especialista
   const ai = new GoogleGenAI({ apiKey });
   const agentDef = AGENTS_MAP[agentId];
   
@@ -25,10 +25,11 @@ export async function sendMessageToAgent(
   }));
 
   const lastMessage = messages[messages.length - 1].content;
+  const modelToUse = settings.model || 'gemini-3-pro-preview';
 
   try {
     const response = await ai.models.generateContent({
-      model: settings.model || 'gemini-3-pro-preview',
+      model: modelToUse,
       contents: [
         ...history,
         { role: 'user', parts: [{ text: lastMessage }] }
@@ -48,25 +49,22 @@ export async function sendMessageToAgent(
       timestamp: Date.now(),
     };
   } catch (error: any) {
-    console.error("Gemini API Error Context:", error);
+    console.error("AI API Error Context:", error);
     
     const errorMessage = error.message || "";
 
-    // Tratamento de Cota Excedida (429)
     if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota")) {
       throw new Error("QUOTA_EXCEEDED");
     }
 
-    // Tratamento de Chave Inválida (401/403)
-    if (errorMessage.includes("API key not valid") || errorMessage.includes("INVALID_ARGUMENT")) {
+    if (errorMessage.includes("API key not valid") || errorMessage.includes("INVALID_ARGUMENT") || errorMessage.includes("Requested entity was not found")) {
       throw new Error("INVALID_KEY");
     }
 
-    // Tratamento de Modelo Ocupado (503/504)
     if (errorMessage.includes("503") || errorMessage.includes("overloaded")) {
       throw new Error("MODEL_BUSY");
     }
 
-    throw new Error(errorMessage || "Erro desconhecido na rede neural.");
+    throw new Error(errorMessage || "Erro na comunicação com a rede neural.");
   }
 }
