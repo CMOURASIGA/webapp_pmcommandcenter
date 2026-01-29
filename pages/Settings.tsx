@@ -7,17 +7,16 @@ import {
   Cpu, 
   Check, 
   Key,
-  ExternalLink,
   ChevronDown,
-  Lock,
-  Zap,
   ShieldCheck,
   ShieldAlert,
   Eye,
   EyeOff,
   Save,
-  Link as LinkIcon,
-  Globe
+  Globe,
+  Zap,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { AgentId } from '../types';
 
@@ -30,7 +29,28 @@ const MODELS_BY_PROVIDER = {
   'openai': [
     { id: 'gpt-4o', name: 'GPT-4o (Omni)' },
     { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+    { id: 'o1-preview', name: 'o1 Preview' },
+  ],
+  'anthropic': [
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
+    { id: 'claude-3-opus-latest', name: 'Claude 3 Opus' },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku' },
+  ],
+  'xai': [
+    { id: 'grok-2-latest', name: 'Grok-2' },
+    { id: 'grok-2-1212', name: 'Grok-2 (Alpha)' },
+  ],
+  'perplexity': [
+    { id: 'llama-3.1-sonar-large-128k-online', name: 'Sonar Large (Online)' },
+    { id: 'llama-3.1-sonar-small-128k-online', name: 'Sonar Small (Search)' },
+  ],
+  'groq': [
+    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Fast)' },
+    { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
+  ],
+  'deepseek': [
+    { id: 'deepseek-chat', name: 'DeepSeek V3' },
+    { id: 'deepseek-reasoner', name: 'DeepSeek R1 (Deep Thinking)' },
   ],
   'custom-api': [
     { id: 'custom-model', name: 'Custom Endpoint' }
@@ -49,10 +69,10 @@ export const Settings: React.FC = () => {
   };
 
   const handleUpdate = (agentId: AgentId, field: string, value: any) => {
-    // Se mudar o provedor, reseta o modelo para o primeiro da lista do novo provedor
     if (field === 'provider') {
-      const firstModel = MODELS_BY_PROVIDER[value as keyof typeof MODELS_BY_PROVIDER][0].id;
-      updateAgentSettings(agentId, { provider: value, model: firstModel });
+      const providerModels = MODELS_BY_PROVIDER[value as keyof typeof MODELS_BY_PROVIDER];
+      const firstModel = providerModels ? providerModels[0].id : '';
+      updateAgentSettings(agentId, { provider: value as any, model: firstModel });
     } else {
       updateAgentSettings(agentId, { [field]: value });
     }
@@ -65,10 +85,9 @@ export const Settings: React.FC = () => {
     <div className="space-y-12 pb-20 max-w-6xl mx-auto animate-in fade-in duration-700">
       <header className={`border-b pb-8 ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
         <h2 className={`text-4xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Central de Inteligência</h2>
-        <p className="text-slate-500 mt-2 font-bold uppercase text-[11px] tracking-widest">Misture provedores (Gemini, OpenAI) e gerencie chaves individuais.</p>
+        <p className="text-slate-500 mt-2 font-bold uppercase text-[11px] tracking-widest">Misture os melhores cérebros do mundo: Claude, Grok, GPT, Gemini e outros.</p>
       </header>
 
-      {/* Agents Configuration List */}
       <section className="space-y-6">
         {AGENTS_DEFINITIONS.map((agent) => {
           const settings = settingsByAgent[agent.id];
@@ -96,11 +115,14 @@ export const Settings: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-60 mt-1">{agent.category}</p>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <div className={`flex items-center gap-2 text-[8px] font-black px-3 py-1.5 rounded-lg border uppercase tracking-widest w-fit ${
-                      settings.provider === 'openai' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      settings.provider === 'google-ai-studio' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      settings.provider === 'openai' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                      settings.provider === 'anthropic' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+                      'bg-slate-500/10 text-slate-400 border-slate-500/20'
                     }`}>
-                      <Globe size={10} /> Provedor: {settings.provider?.toUpperCase()}
+                      <Globe size={10} /> {settings.provider?.replace('-', ' ')}
                     </div>
                   </div>
                 </div>
@@ -112,7 +134,9 @@ export const Settings: React.FC = () => {
                     {/* Provider & Key */}
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">1. ESCOLHER PROVEDOR</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <Layers size={14} className="text-emerald-500"/> Provedor de IA
+                        </label>
                         <select 
                           value={settings.provider}
                           onChange={(e) => handleUpdate(agent.id, 'provider', e.target.value)}
@@ -122,20 +146,25 @@ export const Settings: React.FC = () => {
                         >
                           <option value="google-ai-studio">Google AI Studio (Gemini)</option>
                           <option value="openai">OpenAI (ChatGPT)</option>
+                          <option value="anthropic">Anthropic (Claude)</option>
+                          <option value="xai">xAI (Grok)</option>
+                          <option value="perplexity">Perplexity (Search AI)</option>
+                          <option value="groq">Groq (Ultra Fast)</option>
+                          <option value="deepseek">DeepSeek (Open Model)</option>
                         </select>
                       </div>
 
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
-                          <span>2. CHAVE DE API</span>
-                          {hasManualKey && <span className="text-emerald-500 text-[8px] font-black uppercase flex items-center gap-1"><Check size={10}/> Ativa</span>}
+                          <span className="flex items-center gap-2"><Key size={14} /> Chave de API</span>
+                          {hasManualKey && <span className="text-emerald-500 text-[8px] font-black uppercase flex items-center gap-1 animate-pulse"><Check size={10}/> Ativa</span>}
                         </label>
                         <div className="relative">
                           <input 
                             type={showKeys[agent.id] ? "text" : "password"}
                             value={settings.apiKey || ''}
                             onChange={(e) => handleUpdate(agent.id, 'apiKey', e.target.value)}
-                            placeholder={`Chave para ${settings.provider === 'openai' ? 'OpenAI' : 'Gemini'}...`}
+                            placeholder={`Chave para ${settings.provider?.toUpperCase()}...`}
                             className={`w-full border rounded-2xl px-6 py-4 pr-14 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all ${
                               isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'
                             }`}
@@ -150,7 +179,9 @@ export const Settings: React.FC = () => {
                     {/* Model & Temperature */}
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">3. ESCOLHER MODELO</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <Sparkles size={14} className="text-blue-500"/> Cérebro / Modelo
+                        </label>
                         <select 
                           value={settings.model}
                           onChange={(e) => handleUpdate(agent.id, 'model', e.target.value)}
@@ -158,7 +189,7 @@ export const Settings: React.FC = () => {
                             isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900 border-slate-800 text-white'
                           }`}
                         >
-                          {providerModels.map(m => (
+                          {providerModels?.map(m => (
                             <option key={m.id} value={m.id}>{m.name}</option>
                           ))}
                         </select>
@@ -166,7 +197,9 @@ export const Settings: React.FC = () => {
 
                       <div className="space-y-3">
                         <div className="flex justify-between items-center px-1">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">4. TEMPERATURA: {settings.temperature ?? 0.7}</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Zap size={14} className="text-amber-500"/> Criatividade: {settings.temperature ?? 0.7}
+                          </label>
                         </div>
                         <input 
                           type="range" min="0" max="1" step="0.1"

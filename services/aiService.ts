@@ -17,7 +17,7 @@ export async function sendMessageToAgent(
   const agentDef = AGENTS_MAP[agentId];
   const modelToUse = settings.model;
 
-  // LOGICA PARA GOOGLE GEMINI
+  // 1. GOOGLE AI STUDIO (GEMINI)
   if (settings.provider === 'google-ai-studio') {
     const ai = new GoogleGenAI({ apiKey });
     const history = messages.slice(0, -1).map(m => ({
@@ -46,10 +46,54 @@ export async function sendMessageToAgent(
     }
   }
 
-  // LOGICA PARA OPENAI (VIA FETCH REST PARA NÃO PRECISAR DE SDK EXTRA)
-  if (settings.provider === 'openai') {
+  // 2. ANTHROPIC (CLAUDE) - Formato de mensagens específico
+  if (settings.provider === 'anthropic') {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'dangerously-allow-browser': 'true' // Em ambiente real isso deve ser via proxy
+        },
+        body: JSON.stringify({
+          model: modelToUse,
+          system: agentDef.systemPrompt,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          max_tokens: 4096,
+          temperature: settings.temperature ?? 0.7
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      return {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.content[0].text,
+        timestamp: Date.now(),
+      };
+    } catch (error: any) {
+      handleApiErrors(error);
+    }
+  }
+
+  // 3. PROVEDORES COMPATÍVEIS COM OPENAI (OpenAI, Grok, Perplexity, DeepSeek, Groq)
+  const OPENAI_COMPATIBLE_ENDPOINTS: Record<string, string> = {
+    'openai': 'https://api.openai.com/v1/chat/completions',
+    'xai': 'https://api.x.ai/v1/chat/completions',
+    'perplexity': 'https://api.perplexity.ai/chat/completions',
+    'groq': 'https://api.groq.com/openai/v1/chat/completions',
+    'deepseek': 'https://api.deepseek.com/chat/completions',
+  };
+
+  const endpoint = OPENAI_COMPATIBLE_ENDPOINTS[settings.provider];
+
+  if (endpoint) {
+    try {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +129,7 @@ export async function sendMessageToAgent(
 function handleApiErrors(error: any) {
   console.error("AI Service Error:", error);
   const msg = error.message || "";
-  if (msg.includes("429") || msg.includes("quota")) throw new Error("QUOTA_EXCEEDED");
-  if (msg.includes("key") || msg.includes("invalid")) throw new Error("INVALID_KEY");
+  if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) throw new Error("QUOTA_EXCEEDED");
+  if (msg.includes("key") || msg.includes("invalid") || msg.includes("unauthorized")) throw new Error("INVALID_KEY");
   throw new Error(msg || "Erro na comunicação com a IA.");
 }

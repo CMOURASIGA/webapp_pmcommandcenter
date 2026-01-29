@@ -42,7 +42,15 @@ export interface ChatMessage {
 }
 
 export interface AgentSettings {
-  provider: 'google-ai-studio' | 'openai' | 'custom-api';
+  provider: 
+    | 'google-ai-studio' 
+    | 'openai' 
+    | 'anthropic' 
+    | 'xai' 
+    | 'perplexity' 
+    | 'groq' 
+    | 'deepseek' 
+    | 'custom-api';
   model: string;
   temperature?: number;
   apiKey?: string;
