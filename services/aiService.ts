@@ -17,7 +17,7 @@ export async function sendMessageToAgent(
   const agentDef = AGENTS_MAP[agentId];
   const modelToUse = settings.model;
 
-  // 1. GOOGLE AI STUDIO (GEMINI)
+  // 1. GOOGLE AI STUDIO (GEMINI) - Use Native SDK
   if (settings.provider === 'google-ai-studio') {
     const ai = new GoogleGenAI({ apiKey });
     const history = messages.slice(0, -1).map(m => ({
@@ -46,7 +46,7 @@ export async function sendMessageToAgent(
     }
   }
 
-  // 2. ANTHROPIC (CLAUDE) - Formato de mensagens específico
+  // 2. ANTHROPIC (CLAUDE) - Specific Headers and Body
   if (settings.provider === 'anthropic') {
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -55,7 +55,7 @@ export async function sendMessageToAgent(
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'dangerously-allow-browser': 'true' // Em ambiente real isso deve ser via proxy
+          'dangerously-allow-browser': 'true'
         },
         body: JSON.stringify({
           model: modelToUse,
@@ -67,7 +67,7 @@ export async function sendMessageToAgent(
       });
 
       const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
       return {
         id: crypto.randomUUID(),
@@ -80,7 +80,7 @@ export async function sendMessageToAgent(
     }
   }
 
-  // 3. PROVEDORES COMPATÍVEIS COM OPENAI (OpenAI, Grok, Perplexity, DeepSeek, Groq)
+  // 3. OPENAI COMPATIBLE (OpenAI, Grok, Perplexity, DeepSeek, Groq)
   const OPENAI_COMPATIBLE_ENDPOINTS: Record<string, string> = {
     'openai': 'https://api.openai.com/v1/chat/completions',
     'xai': 'https://api.x.ai/v1/chat/completions',
@@ -89,7 +89,7 @@ export async function sendMessageToAgent(
     'deepseek': 'https://api.deepseek.com/chat/completions',
   };
 
-  const endpoint = OPENAI_COMPATIBLE_ENDPOINTS[settings.provider];
+  const endpoint = OPENAI_COMPATIBLE_ENDPOINTS[settings.provider as string];
 
   if (endpoint) {
     try {
@@ -110,7 +110,7 @@ export async function sendMessageToAgent(
       });
 
       const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
       return {
         id: crypto.randomUUID(),
@@ -130,6 +130,6 @@ function handleApiErrors(error: any) {
   console.error("AI Service Error:", error);
   const msg = error.message || "";
   if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) throw new Error("QUOTA_EXCEEDED");
-  if (msg.includes("key") || msg.includes("invalid") || msg.includes("unauthorized")) throw new Error("INVALID_KEY");
+  if (msg.includes("key") || msg.includes("invalid") || msg.includes("unauthorized") || msg.includes("401")) throw new Error("INVALID_KEY");
   throw new Error(msg || "Erro na comunicação com a IA.");
 }

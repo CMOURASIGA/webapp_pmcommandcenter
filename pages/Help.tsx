@@ -115,10 +115,10 @@ export const Help: React.FC = () => {
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
-                  <Wand2 size={14} /> UI Designer -> Gemini 2.5 Flash Image (Design)
+                  <Wand2 size={14} /> UI Designer &rarr; Gemini 2.5 Flash Image (Design)
                 </li>
                 <li className="flex items-center gap-3 text-[10px] font-black uppercase text-blue-500 bg-blue-500/5 p-3 rounded-xl border border-blue-500/10">
-                  <Zap size={14} /> PM Partner -> Gemini 3 Pro (Raciocínio)
+                  <Zap size={14} /> PM Partner &rarr; Gemini 3 Pro (Raciocínio)
                 </li>
               </ul>
             </div>
