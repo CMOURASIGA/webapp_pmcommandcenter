@@ -1,6 +1,8 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIcon, RefreshCw, Activity, Zap } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AgentId, ChatMessage } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -118,24 +120,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex gap-3 max-w-[90%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 ${m.role === 'user' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+            <div className={`flex gap-3 max-w-[95%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-lg ${m.role === 'user' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                 {m.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
               </div>
-              <div className={`p-4 rounded-3xl text-sm border ${
+              <div className={`p-4 rounded-3xl border shadow-sm markdown-content ${
                 m.role === 'user' 
                   ? 'bg-blue-600/10 text-blue-100 border-blue-500/20' 
-                  : 'bg-slate-800/80 text-slate-200 border-slate-700/50'
+                  : (theme === 'light' ? 'bg-slate-50 text-slate-800 border-slate-200' : 'bg-slate-800/80 text-slate-200 border-slate-700/50')
               }`}>
-                {m.content}
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {m.content}
+                </ReactMarkdown>
               </div>
             </div>
           </div>
         ))}
-        {isLoading && <div className="text-[10px] font-black uppercase text-emerald-500 animate-pulse">Especialista Pensando...</div>}
+        {isLoading && (
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <RefreshCw size={14} className="text-emerald-500 animate-spin" />
+            </div>
+            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Especialista Pensando...</span>
+          </div>
+        )}
         {renderError()}
       </div>
 
@@ -146,11 +157,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
             placeholder={`Ordens para ${agentDef.displayName}...`}
-            className={`flex-1 border rounded-2xl px-5 py-3 text-sm focus:outline-none resize-none h-14 ${
-              theme === 'light' ? 'bg-white' : 'bg-slate-950 border-slate-700 text-white'
+            className={`flex-1 border rounded-2xl px-5 py-4 text-sm focus:outline-none resize-none h-16 shadow-inner transition-all focus:ring-2 focus:ring-emerald-500/20 ${
+              theme === 'light' ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-slate-950 border-slate-700 text-white placeholder-slate-600'
             }`}
           />
-          <button onClick={handleSend} disabled={!input.trim() || isLoading} className="w-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center">
+          <button 
+            onClick={handleSend} 
+            disabled={!input.trim() || isLoading} 
+            className="w-16 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+          >
             <Send size={20} />
           </button>
         </div>
