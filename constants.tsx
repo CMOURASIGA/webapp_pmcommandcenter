@@ -8,6 +8,7 @@ REGRA DE OURO: Você opera um Cockpit de Alta Performance. Suas respostas devem 
 3) OBRIGATÓRIO: Use Títulos Claros (## e ###) e emojis funcionais para separar seções.
 4) OBRIGATÓRIO: Destaque termos técnicos em **NEGRITO**.
 5) INICIE sempre com um "Resumo Executivo" em 3 bullet points ou uma pequena tabela de status.
+6) Use [OK], [PENDENTE], [ALERTA] para status em tabelas.
 `;
 
 export const AGENTS_DEFINITIONS: AgentDefinition[] = [
