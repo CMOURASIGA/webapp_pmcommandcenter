@@ -104,7 +104,22 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-800/10">
+          <div className="p-4 border-t border-slate-800/10 space-y-2">
+            <button
+              onClick={toggleTheme}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl border py-2.5 px-3 transition-all active:scale-95 ${
+                theme === 'light'
+                  ? 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-emerald-400'
+              }`}
+            >
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+              {!collapsed && (
+                <span className="text-[10px] uppercase tracking-widest font-black">
+                  Tema: {theme === 'light' ? 'Claro' : 'Escuro'}
+                </span>
+              )}
+            </button>
             <button 
               onClick={() => navigate('/projects')}
               className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 ${collapsed ? 'px-0' : 'px-4'}`}

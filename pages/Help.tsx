@@ -20,7 +20,11 @@ import {
   Settings2,
   BrainCircuit,
   Wand2,
-  Database
+  Database,
+  Workflow,
+  AlertTriangle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -90,9 +94,43 @@ export const Help: React.FC = () => {
         </div>
         <h2 className={`text-4xl md:text-6xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Manual do Operador</h2>
         <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-xl font-bold leading-relaxed uppercase tracking-tight">
-          Configure o "DNA" de cada especialista e defina como o cockpit deve processar suas ordens.
+          Configure o "DNA" de cada especialista e veja como o cockpit orquestra contextos e fluxos automÃ¡ticos.
         </p>
       </header>
+
+      {/* Como usar agora */}
+      <section className="space-y-6 px-4">
+        <div className={`flex items-center gap-4 border-b pb-4 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
+          <LayoutDashboard className="text-emerald-500" size={28} />
+          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Como o cockpit funciona hoje</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Contexto por projeto</p>
+            <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              Cada projeto tem ProjectContext prÃ³prio (objetivo, valor, backlog, riscos, processos, decisÃµes, maturidade) e histÃ³rico de versÃµes automÃ¡tico.
+            </p>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">AÃ§Ãµes inteligentes</p>
+            <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              Respostas do PM trazem botÃµes (Gerar BPMN, Gerar Backlog, Analisar Risco) e a detecÃ§Ã£o de gargalos sugere BPMN/AutomaÃ§Ã£o sem pedir.
+            </p>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Maturidade</p>
+            <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              PM AI adapta backlog/planos ao nÃ­vel (exploratorio, estruturado, execucao, otimizacao) enviado no contexto.
+            </p>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Tema claro/escuro</p>
+            <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              Use o toggle no topo ou no menu lateral para alternar palheta e manter seu estilo de trabalho.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Orquestração Granular */}
       <section className="space-y-12 px-4">
