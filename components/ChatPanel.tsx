@@ -22,8 +22,10 @@ const EMPTY_MESSAGES: ChatMessage[] = [];
 export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [errorType, setErrorType] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   const context = useMemo(() => getContext(), []);
@@ -226,6 +228,32 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     );
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setErrorType(null);
+    try {
+      const text = await file.text();
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `Conteudo do anexo (${file.name}):\n\n${text}`,
+        timestamp: Date.now(),
+      };
+      addMessage(chatId, userMessage);
+      setIsLoading(true);
+      const response = await sendMessageToAgent(agentId, [...messages, userMessage], settings, projectId);
+      addMessage(chatId, response);
+    } catch (err: any) {
+      setErrorType(err.message || 'Erro ao ler anexo.');
+    } finally {
+      setIsUploading(false);
+      setIsLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full border rounded-[32px] overflow-hidden shadow-2xl relative ${
       theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
@@ -301,13 +329,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
               theme === 'light' ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-slate-950 border-slate-700 text-white placeholder-slate-600'
             }`}
           />
-          <button 
-            onClick={handleSend} 
-            disabled={!input.trim() || isLoading} 
-            className="w-16 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
-          >
-            <Send size={20} />
-          </button>
+          <div className="flex flex-col gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".txt,.md,.csv,.json,.log"
+              onChange={handleFileSelect}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || isLoading}
+              className="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-500 disabled:opacity-50"
+            >
+              {isUploading ? 'Lendo...' : 'Anexar'}
+            </button>
+            <button 
+              onClick={handleSend} 
+              disabled={!input.trim() || isLoading} 
+              className="w-16 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+            >
+              <Send size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
