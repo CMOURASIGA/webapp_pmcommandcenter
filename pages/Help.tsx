@@ -202,6 +202,42 @@ export const Help: React.FC = () => {
           <BookOpen className="text-emerald-500" size={32} />
           <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Manual dos Especialistas</h3>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para PM AI</p>
+            <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
+              <li>- “Gere backlog INVEST citando valor.metricas e prazo”.</li>
+              <li>- “Plano 30-60-90 alinhado ao nivel de maturidade”.</li>
+              <li>- “Valide se objetivo conflita com contexto antes de responder”.</li>
+            </ul>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para BPMN</p>
+            <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
+              <li>- “Modele AS IS vs TO BE com Humano/Sistema”.</li>
+              <li>- “Destacar gargalos e propor automacao”.</li>
+              <li>- “Exportar tabela de passos para CSV (colunas: Passo, Ator, Tipo, Entrada, Saida)”.</li>
+            </ul>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para Riscos</p>
+            <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
+              <li>- “Mapeie riscos por area e gere matriz com score”.</li>
+              <li>- “Adicionar plano de mitigacao coerente com valor.metricas”.</li>
+              <li>- “Assumir apenas dados do ProjectContext; marcar H1 se faltar dado”.</li>
+            </ul>
+          </div>
+          <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para UI/Comms/Metrics/Docs</p>
+            <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
+              <li>- UI: “Especificar tela em tabela de componentes (Elemento|Tipo|Comportamento|Validacao)”.</li>
+              <li>- Comms: “Status semanal em semaforo e próximos passos”.</li>
+              <li>- Metrics: “KPI com formula, meta, frequencia alinhadas ao valor”.</li>
+              <li>- Docs: “Plano de acao (Acao|Responsavel|Prazo|Status) e decisoes criticas no topo”.</li>
+            </ul>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 gap-8">
           {AGENTS_DEFINITIONS.map(agent => (
