@@ -11,6 +11,7 @@ import { sendMessageToAgent } from '../services/aiService';
 import { AGENTS_MAP } from '../constants';
 import { useNavigate } from 'react-router-dom';
 import { getContext, validateContext } from '../services/contextService';
+import * as XLSX from 'xlsx';
 
 interface ChatPanelProps {
   agentId: AgentId;
@@ -18,6 +19,8 @@ interface ChatPanelProps {
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = [];
+const MAX_ROWS_PREVIEW = 20;
+const MAX_COLS_PREVIEW = 10;
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const [input, setInput] = useState('');
@@ -234,7 +237,44 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     setIsUploading(true);
     setErrorType(null);
     try {
-      const text = await file.text();
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      let text = '';
+
+      const formatTable = (rows: any[][]) => {
+        const limitedRows = rows.slice(0, MAX_ROWS_PREVIEW).map((r) => r.slice(0, MAX_COLS_PREVIEW));
+        const header = limitedRows[0] || [];
+        const body = limitedRows.slice(1);
+        const headerLine = `| ${header.join(' | ')} |`;
+        const sepLine = `| ${header.map(() => '---').join(' | ')} |`;
+        const bodyLines = body.map((r) => `| ${r.join(' | ')} |`);
+        return [headerLine, sepLine, ...bodyLines].join('\n');
+      };
+
+      const parseCsv = (raw: string) => {
+        const lines = raw.split(/\r?\n/).filter(Boolean);
+        return lines.map((line) => {
+          const delimiter = line.includes(';') ? ';' : ',';
+          return line.split(delimiter).map((c) => c.trim());
+        });
+      };
+
+      if (['csv', 'txt', 'md', 'json', 'log'].includes(ext)) {
+        text = await file.text();
+        if (ext === 'csv') {
+          const rows = parseCsv(text);
+          text = `Pré-visualização CSV (${rows.length} linhas, max ${MAX_ROWS_PREVIEW}):\n${formatTable(rows)}`;
+        }
+      } else if (['xlsx', 'xls'].includes(ext)) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+        text = `Pré-visualização Excel (${firstSheetName}) - ${rows.length} linhas (max ${MAX_ROWS_PREVIEW}):\n${formatTable(rows)}`;
+      } else {
+        throw new Error('Formato de anexo não suportado. Use CSV, TXT, JSON ou XLSX.');
+      }
+
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
