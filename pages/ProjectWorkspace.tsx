@@ -26,6 +26,9 @@ import {
 import { ChatPanel } from '../components/ChatPanel';
 import { AgentId, ProjectContext } from '../types';
 import { getContext, updateContext, getHistory } from '../services/contextService';
+import { AGENTS_MAP } from '../constants';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type TabId = 'overview' | 'planning' | 'processes' | 'risks' | 'design' | 'comms' | 'metrics' | 'meetings';
 
@@ -38,14 +41,14 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { id: 'overview', label: 'Geral', icon: Layout, description: 'Visão executiva.', agentId: 'pmAiPartner' },
-  { id: 'planning', label: 'Backlog', icon: Target, description: 'Histórias INVEST.', agentId: 'pmAiPartner' },
-  { id: 'processes', label: 'BPMN', icon: Workflow, description: 'Modelos compatíveis.', agentId: 'bpmnMasterArchitect' },
-  { id: 'risks', label: 'Riscos', icon: AlertTriangle, description: 'Matriz de calor.', agentId: 'riskDecisionAnalyst' },
-  { id: 'design', label: 'Design', icon: LayoutTemplate, description: 'UX/UI flows.', agentId: 'uiScreensDesigner' },
-  { id: 'comms', label: 'Comunicação', icon: MessageSquare, description: 'Updates semanais.', agentId: 'stakeholderCommsWriter' },
-  { id: 'metrics', label: 'Métricas', icon: BarChart3, description: 'KPIs e saúde.', agentId: 'metricsReportingArchitect' },
-  { id: 'meetings', label: 'Atas', icon: FileText, description: 'Decisões e ações.', agentId: 'meetingDocsCopilot' },
+  { id: 'overview', label: AGENTS_MAP.pmAiPartner.displayName, icon: Layout, description: 'Visão executiva.', agentId: 'pmAiPartner' },
+  { id: 'planning', label: AGENTS_MAP.pmAiPartner.displayName, icon: Target, description: 'Histórias INVEST.', agentId: 'pmAiPartner' },
+  { id: 'processes', label: AGENTS_MAP.bpmnMasterArchitect.displayName, icon: Workflow, description: 'Modelos compatíveis.', agentId: 'bpmnMasterArchitect' },
+  { id: 'risks', label: AGENTS_MAP.riskDecisionAnalyst.displayName, icon: AlertTriangle, description: 'Matriz de calor.', agentId: 'riskDecisionAnalyst' },
+  { id: 'design', label: AGENTS_MAP.uiScreensDesigner.displayName, icon: LayoutTemplate, description: 'UX/UI flows.', agentId: 'uiScreensDesigner' },
+  { id: 'comms', label: AGENTS_MAP.stakeholderCommsWriter.displayName, icon: MessageSquare, description: 'Updates semanais.', agentId: 'stakeholderCommsWriter' },
+  { id: 'metrics', label: AGENTS_MAP.metricsReportingArchitect.displayName, icon: BarChart3, description: 'KPIs e saúde.', agentId: 'metricsReportingArchitect' },
+  { id: 'meetings', label: AGENTS_MAP.meetingDocsCopilot.displayName, icon: FileText, description: 'Decisões e ações.', agentId: 'meetingDocsCopilot' },
 ];
 
 export const ProjectWorkspace: React.FC = () => {
@@ -75,6 +78,19 @@ export const ProjectWorkspace: React.FC = () => {
   const chatId = useMemo(() => 
     `${id}-${activeTab === 'overview' ? 'pmAiPartner' : activeAgent.agentId}`,
     [id, activeTab, activeAgent]
+  );
+
+  const docMessages = useChatStore((state) => state.chats[chatId] || []);
+  const lastAssistantDoc = useMemo(() => [...docMessages].reverse().find((m) => m.role === 'assistant') || null, [docMessages]);
+  const lastAttachments = useMemo(
+    () =>
+      docMessages
+        .filter((m) => m.role === 'user' && m.content.startsWith('Conteudo do anexo'))
+        .map((m) => {
+          const firstLine = m.content.split('\n')[0] || '';
+          return firstLine.replace('Conteudo do anexo (', '').replace('):', '') || 'Anexo';
+        }),
+    [docMessages]
   );
 
   // Função para limpar todos os chats do projeto de uma vez
