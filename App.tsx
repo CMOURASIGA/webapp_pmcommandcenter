@@ -10,10 +10,18 @@ import { AgentsLab } from './pages/AgentsLab';
 import { Settings } from './pages/Settings';
 import { Help } from './pages/Help';
 import { useThemeStore } from './store/useThemeStore';
+import { getContext } from './services/contextService';
 
 const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const context = getContext();
+    if (typeof window !== 'undefined') {
+      (window as any).__PM_PROJECT_CONTEXT__ = context;
+    }
+  }, []);
 
   useEffect(() => {
     // Aplica o tema diretamente ao body para efeitos globais

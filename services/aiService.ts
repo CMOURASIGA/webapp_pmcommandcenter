@@ -1,12 +1,13 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { AgentId, ChatMessage, AgentSettings } from "../types";
 import { AGENTS_MAP } from "../constants";
+import { getContext, updateContext, formatPromptWithContext, parseContextUpdateFromResponse } from "./contextService";
 
 export async function sendMessageToAgent(
   agentId: AgentId,
   messages: ChatMessage[],
-  settings: AgentSettings
+  settings: AgentSettings,
+  projectId?: string
 ): Promise<ChatMessage> {
   const apiKey = settings.apiKey || process.env.API_KEY;
 
@@ -16,15 +17,24 @@ export async function sendMessageToAgent(
 
   const agentDef = AGENTS_MAP[agentId];
   const modelToUse = settings.model;
+  const context = getContext(projectId);
+
+  // aplica contexto apenas na ultima mensagem do usuario
+  const contextualizedMessages = messages.map((m, idx) => {
+    if (m.role === 'user' && idx === messages.length - 1) {
+      return { ...m, content: formatPromptWithContext(context, m.content) };
+    }
+    return m;
+  });
 
   // 1. GOOGLE AI STUDIO (GEMINI) - Use Native SDK
   if (settings.provider === 'google-ai-studio') {
     const ai = new GoogleGenAI({ apiKey });
-    const history = messages.slice(0, -1).map(m => ({
+    const history = contextualizedMessages.slice(0, -1).map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }]
     }));
-    const lastMessage = messages[messages.length - 1].content;
+    const lastMessage = contextualizedMessages[contextualizedMessages.length - 1].content;
 
     try {
       const response = await ai.models.generateContent({
@@ -35,12 +45,14 @@ export async function sendMessageToAgent(
           temperature: settings.temperature ?? 0.7,
         },
       });
-      return {
+      const message: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: response.text || "Sem resposta do Gemini.",
         timestamp: Date.now(),
       };
+      applyContextUpdate(message.content, projectId);
+      return message;
     } catch (error: any) {
       handleApiErrors(error);
     }
@@ -60,7 +72,7 @@ export async function sendMessageToAgent(
         body: JSON.stringify({
           model: modelToUse,
           system: agentDef.systemPrompt,
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          messages: contextualizedMessages.map(m => ({ role: m.role, content: m.content })),
           max_tokens: 4096,
           temperature: settings.temperature ?? 0.7
         })
@@ -69,12 +81,14 @@ export async function sendMessageToAgent(
       const data = await response.json();
       if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-      return {
+      const message: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: data.content[0].text,
         timestamp: Date.now(),
       };
+      applyContextUpdate(message.content, projectId);
+      return message;
     } catch (error: any) {
       handleApiErrors(error);
     }
@@ -103,7 +117,7 @@ export async function sendMessageToAgent(
           model: modelToUse,
           messages: [
             { role: 'system', content: agentDef.systemPrompt },
-            ...messages.map(m => ({ role: m.role, content: m.content }))
+            ...contextualizedMessages.map(m => ({ role: m.role, content: m.content }))
           ],
           temperature: settings.temperature ?? 0.7
         })
@@ -112,12 +126,14 @@ export async function sendMessageToAgent(
       const data = await response.json();
       if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-      return {
+      const message: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: data.choices[0].message.content,
         timestamp: Date.now(),
       };
+      applyContextUpdate(message.content, projectId);
+      return message;
     } catch (error: any) {
       handleApiErrors(error);
     }
@@ -131,5 +147,20 @@ function handleApiErrors(error: any) {
   const msg = error.message || "";
   if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) throw new Error("QUOTA_EXCEEDED");
   if (msg.includes("key") || msg.includes("invalid") || msg.includes("unauthorized") || msg.includes("401")) throw new Error("INVALID_KEY");
-  throw new Error(msg || "Erro na comunicação com a IA.");
+  throw new Error(msg || "Erro na comunicacao com a IA.");
+}
+
+function applyContextUpdate(content: string, projectId?: string) {
+  const updates = parseContextUpdateFromResponse(content);
+  const hasUpdates = ['backlog', 'riscos', 'decisoes'].some((key) => {
+    const value = (updates as any)[key];
+    return Array.isArray(value);
+  });
+
+  if (!hasUpdates) return;
+
+  updateContext({
+    ...updates,
+    atualizadoEm: new Date().toISOString(),
+  }, projectId);
 }

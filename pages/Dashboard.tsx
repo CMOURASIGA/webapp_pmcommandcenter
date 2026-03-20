@@ -38,7 +38,7 @@ export const Dashboard: React.FC = () => {
 
   const activeProjects = projects.filter(p => p.status === 'Ativo').length;
   const atRiskProjects = projects.filter(p => p.status === 'Em Risco').length;
-  const completedProjects = projects.filter(p => p.status === 'Concluído').length;
+  const completedProjects = projects.filter(p => p.status === 'Concluido').length;
 
   return (
     <div className="space-y-10 animate-slide-up">

@@ -1,4 +1,3 @@
-
 export type AgentId =
   | 'pmAiPartner'
   | 'bpmnMasterArchitect'
@@ -8,8 +7,9 @@ export type AgentId =
   | 'metricsReportingArchitect'
   | 'meetingDocsCopilot';
 
-export type ProjectStatus = 'Ativo' | 'Suspenso' | 'Concluído' | 'Em Risco';
+export type ProjectStatus = 'Ativo' | 'Suspenso' | 'Concluido' | 'Em Risco';
 export type Methodology = 'Agile' | 'Waterfall' | 'Hybrid';
+export type MaturityLevel = 'exploratorio' | 'estruturado' | 'execucao' | 'otimizacao';
 
 export interface Project {
   id: string;
@@ -42,14 +42,14 @@ export interface ChatMessage {
 }
 
 export interface AgentSettings {
-  provider: 
-    | 'google-ai-studio' 
-    | 'openai' 
-    | 'anthropic' 
-    | 'xai' 
-    | 'perplexity' 
-    | 'groq' 
-    | 'deepseek' 
+  provider:
+    | 'google-ai-studio'
+    | 'openai'
+    | 'anthropic'
+    | 'xai'
+    | 'perplexity'
+    | 'groq'
+    | 'deepseek'
     | 'custom-api';
   model: string;
   temperature?: number;
@@ -61,14 +61,73 @@ export interface AgentDefinition {
   displayName: string;
   shortDescription: string;
   category:
-    | 'Planejamento & Execução'
+    | 'Planejamento & Execucao'
     | 'Processos & BPMN'
     | 'Design & UX'
-    | 'Riscos & Decisões'
-    | 'Comunicação'
-    | 'Métricas & Relatórios'
-    | 'Reuniões & Documentos';
+    | 'Riscos & Decisoes'
+    | 'Comunicacao'
+    | 'Metricas & Relatorios'
+    | 'Reunioes & Documentos';
   usageTips: string[];
   systemPrompt: string;
   icon: string;
 }
+
+export interface UserStory {
+  id: string;
+  epico: string;
+  historia: string;
+  criteriosAceite: string;
+  valor?: string;
+  prioridade?: string;
+}
+
+export interface ContextRisk {
+  id: string;
+  risco: string;
+  probabilidade: number;
+  impacto: number;
+  score: number;
+  mitigacao: string;
+  responsavel?: string;
+}
+
+export interface ProcessEntry {
+  id: string;
+  passo: string;
+  ator: string;
+  tipo: 'Humano' | 'Sistema';
+  entrada: string;
+  saida: string;
+  regra?: string;
+  visao?: 'AS_IS' | 'TO_BE';
+}
+
+export interface DecisionEntry {
+  id: string;
+  decisao: string;
+  responsavel?: string;
+  prazo?: string;
+  status?: string;
+}
+
+export type ProjectContext = {
+  id: string;
+  nome: string;
+  objetivo: string;
+  valor: {
+    descricao: string;
+    stakeholders: string[];
+    metricas: string[];
+    prazo: string;
+  };
+  escopo: string;
+  stakeholders: string[];
+  userStories: UserStory[];
+  risks: ContextRisk[];
+  processes: ProcessEntry[];
+  decisions: DecisionEntry[];
+  maturidade: MaturityLevel;
+  metricas: any[];
+  atualizadoEm: string;
+};

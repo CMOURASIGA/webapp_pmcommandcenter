@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectsStore } from '../store/useProjectsStore';
 import { useChatStore } from '../store/useChatStore';
@@ -24,7 +24,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { ChatPanel } from '../components/ChatPanel';
-import { AgentId } from '../types';
+import { AgentId, ProjectContext } from '../types';
+import { getContext, updateContext, getHistory } from '../services/contextService';
 
 type TabId = 'overview' | 'planning' | 'processes' | 'risks' | 'design' | 'comms' | 'metrics' | 'meetings';
 
@@ -52,11 +53,19 @@ export const ProjectWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   
-  const projects = useProjectsStore((state) => state.projects);
-  const project = useMemo(() => projects.find(p => p.id === id), [projects, id]);
-  
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const clearChat = useChatStore((state) => state.clearChat);
+  const projects = useProjectsStore((state) => state.projects);
+  const project = useMemo(() => projects.find(p => p.id === id), [projects, id]);
+  const [projectContext, setProjectContext] = useState<ProjectContext>(() => getContext(id));
+  const [valorDescricao, setValorDescricao] = useState(projectContext.valor.descricao);
+  const [valorStakeholders, setValorStakeholders] = useState(projectContext.valor.stakeholders.join(', '));
+  const [valorMetricas, setValorMetricas] = useState(projectContext.valor.metricas.join(', '));
+  const [valorPrazo, setValorPrazo] = useState(projectContext.valor.prazo);
+
+  useEffect(() => {
+    setProjectContext(getContext(id));
+  }, [activeTab, id]);
 
   const activeAgent = useMemo(() => 
     TABS.find(t => t.id === activeTab) || TABS[0], 
@@ -163,6 +172,147 @@ export const ProjectWorkspace: React.FC = () => {
                     <p className={`text-xs font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{item.value}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-2xl border ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800/50'}`}>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Objetivo</p>
+                  <p className={`text-sm font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{project.objective}</p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mt-4 mb-2">Maturidade</p>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
+                    {projectContext.maturidade}
+                  </span>
+                </div>
+                <div className={`p-4 rounded-2xl border ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800/50'}`}>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Valor</p>
+                  <p className={`text-sm font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{projectContext.valor.descricao}</p>
+                  <div className="mt-3 text-[10px] text-slate-500 space-y-1 font-bold uppercase">
+                    <div>Stakeholders: {projectContext.valor.stakeholders.join(', ') || '--'}</div>
+                    <div>Métricas: {projectContext.valor.metricas.join(', ') || '--'}</div>
+                    <div>Prazo: {projectContext.valor.prazo || '--'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800/50'}`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-black text-slate-500 uppercase">Histórico de versões</p>
+                  <span className="text-[9px] font-black text-slate-400 uppercase">últimas 3</span>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {getHistory(id).slice(0, 3).map((h, idx) => (
+                    <div key={idx} className={`p-3 rounded-xl border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                      <p className="text-[10px] font-black text-slate-500 uppercase">Salvo em {new Date(h.savedAt || h.atualizadoEm).toLocaleString()}</p>
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate">Objetivo: {h.objetivo}</p>
+                    </div>
+                  ))}
+                  {getHistory(id).length === 0 && <p className="text-[11px] text-slate-500 font-bold">Nenhum histórico.</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800/50'}`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black text-slate-500 uppercase">Backlog</p>
+                    <span className="text-[9px] font-black text-slate-400 uppercase">Total: {projectContext.userStories.length}</span>
+                  </div>
+                  <div className="space-y-2 max-h-56 overflow-auto custom-scrollbar pr-1">
+                    {projectContext.userStories.length === 0 && <p className="text-[11px] text-slate-500 font-bold">Nenhuma história registrada.</p>}
+                    {projectContext.userStories.map((story) => (
+                      <div key={story.id} className={`p-3 rounded-xl border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                        <p className="text-[10px] font-black uppercase text-emerald-600">{story.epico}</p>
+                        <p className={`text-[11px] font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{story.historia}</p>
+                        <p className="text-[10px] text-slate-500 font-bold mt-1">Valor: {story.valor || '--'} | Prio: {story.prioridade || '--'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800/50'}`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black text-slate-500 uppercase">Riscos</p>
+                    <span className="text-[9px] font-black text-slate-400 uppercase">Total: {projectContext.risks.length}</span>
+                  </div>
+                  <div className="space-y-2 max-h-56 overflow-auto custom-scrollbar pr-1">
+                    {projectContext.risks.length === 0 && <p className="text-[11px] text-slate-500 font-bold">Nenhum risco mapeado.</p>}
+                    {projectContext.risks.map((risk) => (
+                      <div key={risk.id} className={`p-3 rounded-xl border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                        <p className={`text-[11px] font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{risk.risco}</p>
+                        <p className="text-[10px] text-slate-500 font-bold mt-1">
+                          Score: {risk.score} | Prob: {risk.probabilidade} | Impacto: {risk.impacto}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-bold mt-1">Mitigação: {risk.mitigacao || '--'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={cardBase}>
+              <h3 className="text-emerald-600 font-black flex items-center gap-2 text-xs uppercase tracking-wider"><Target size={18}/> Valor do Projeto</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Descrição de Valor</label>
+                  <textarea 
+                    value={valorDescricao} 
+                    onChange={(e) => setValorDescricao(e.target.value)}
+                    className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 h-24 resize-none transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+                    placeholder="Descreva o valor esperado..."
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Stakeholders (separar por vírgula)</label>
+                    <input 
+                      value={valorStakeholders} 
+                      onChange={(e) => setValorStakeholders(e.target.value)}
+                      className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+                      placeholder="PM, Cliente, Suporte"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Métricas (separar por vírgula)</label>
+                    <input 
+                      value={valorMetricas} 
+                      onChange={(e) => setValorMetricas(e.target.value)}
+                      className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+                      placeholder="NPS, CSAT, Adoção"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Prazo</label>
+                    <input 
+                      value={valorPrazo} 
+                      onChange={(e) => setValorPrazo(e.target.value)}
+                      className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+                      placeholder="90 dias"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <span>Atualizado em {new Date(projectContext.atualizadoEm).toLocaleString()}</span>
+                <button
+                  onClick={() => {
+                    const sanitizeList = (raw: string) => raw.split(',').map((item) => item.trim()).filter(Boolean);
+                    const updated = updateContext(
+                      {
+                        valor: {
+                          descricao: valorDescricao,
+                          stakeholders: sanitizeList(valorStakeholders),
+                          metricas: sanitizeList(valorMetricas),
+                          prazo: valorPrazo,
+                        }
+                      },
+                      id
+                    );
+                    setProjectContext(updated);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-500/20"
+                >
+                  Salvar Valor
+                </button>
               </div>
             </div>
           </div>

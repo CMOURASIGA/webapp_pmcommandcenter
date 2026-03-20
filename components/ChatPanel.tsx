@@ -10,6 +10,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { sendMessageToAgent } from '../services/aiService';
 import { AGENTS_MAP } from '../constants';
 import { useNavigate } from 'react-router-dom';
+import { getContext, validateContext } from '../services/contextService';
 
 interface ChatPanelProps {
   agentId: AgentId;
@@ -25,6 +26,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
+  const context = useMemo(() => getContext(), []);
+  const contextIssues = useMemo(() => validateContext(context), [context]);
 
   const chatId = useMemo(() => 
     projectId ? `${projectId}-${agentId}` : `standalone-${agentId}`, 
@@ -36,7 +39,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   
   const addMessage = useChatStore((state) => state.addMessage);
   const clearChat = useChatStore((state) => state.clearChat);
-  const settings = useSettingsStore((state) => state.settingsByAgent[agentId]);
+  const settingsByAgent = useSettingsStore((state) => state.settingsByAgent);
+  const settings = settingsByAgent[agentId];
   const agentDef = AGENTS_MAP[agentId];
 
   const contextDensity = useMemo(() => {
@@ -54,6 +58,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   }, [messages, isLoading, errorType]);
 
   const handleSend = async () => {
+    if (contextIssues.length > 0) {
+      setErrorType(`Contexto incompleto: ${contextIssues.join(', ')}. Atualize o contexto antes de enviar.`);
+      return;
+    }
     if (!input.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
@@ -69,7 +77,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     setErrorType(null);
 
     try {
-      const response = await sendMessageToAgent(agentId, [...messages, userMessage], settings);
+      const response = await sendMessageToAgent(agentId, [...messages, userMessage], settings, projectId);
       addMessage(chatId, response);
     } catch (err: any) {
       setErrorType(err.message);
@@ -91,6 +99,128 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             <p className="text-[11px] font-bold uppercase text-slate-400 mt-1">{errorType}</p>
             <button onClick={() => navigate('/settings')} className="mt-3 text-[10px] font-black uppercase text-blue-500 underline">Ajustar Credenciais</button>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const lastAssistantMessage = useMemo(
+    () => [...messages].reverse().find((m) => m.role === 'assistant'),
+    [messages]
+  );
+
+  const bottleneckSignals = useMemo(() => {
+    const text = (lastAssistantMessage?.content || '').toLowerCase();
+    if (!text) return { manual: false, retrabalho: false, complexo: false };
+    const manual = /manual|humano|planilha|digitar|entrada manual/.test(text);
+    const retrabalho = /retrabalho|refazer|rework|correcao|corrigir/.test(text);
+    const gatewayCount = (text.match(/gateway|decisao/g) || []).length;
+    const arrowCount = (text.match(/->/g) || []).length;
+    const lineCount = text.split('\n').length;
+    const complexo = gatewayCount >= 2 || arrowCount >= 6 || lineCount >= 30;
+    return { manual, retrabalho, complexo };
+  }, [lastAssistantMessage]);
+
+  const sendQuickAction = async (targetAgent: AgentId, instruction: string) => {
+    const targetSettings = settingsByAgent[targetAgent];
+    if (!targetSettings) return;
+    if (contextIssues.length > 0) {
+      setErrorType(`Contexto incompleto: ${contextIssues.join(', ')}. Atualize o contexto antes de enviar.`);
+      return;
+    }
+    const actionChatId = projectId ? `${projectId}-${targetAgent}` : `standalone-${targetAgent}`;
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `${instruction}\n\nResumo anterior:\n${lastAssistantMessage?.content || 'Sem resposta anterior.'}`,
+      timestamp: Date.now(),
+    };
+
+    addMessage(actionChatId, userMessage);
+    setIsLoading(true);
+    setErrorType(null);
+    try {
+      const response = await sendMessageToAgent(targetAgent, [userMessage], targetSettings, projectId);
+      addMessage(actionChatId, response);
+      // feedback visual: opcional, não limpa input principal
+    } catch (err: any) {
+      setErrorType(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderActions = () => {
+    if (!lastAssistantMessage) return null;
+    if (agentId === 'pmAiPartner') {
+      return (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button
+            onClick={() => sendQuickAction('bpmnMasterArchitect', 'Gerar modelo BPMN com base na analise do PM. AS IS vs TO BE, Humano/Sistema e gargalos.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-blue-600/10 text-blue-600 border-blue-500/30 hover:bg-blue-600/20 transition-all"
+          >
+            Gerar BPMN
+          </button>
+          <button
+            onClick={() => sendQuickAction('pmAiPartner', 'A partir do contexto e do resumo, gere backlog INVEST detalhado.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-600/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+          >
+            Gerar backlog
+          </button>
+          <button
+            onClick={() => sendQuickAction('riskDecisionAnalyst', 'Analise de riscos com base no resumo anterior e contexto.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20 transition-all"
+          >
+            Analisar risco
+          </button>
+        </div>
+      );
+    }
+
+    if (agentId === 'bpmnMasterArchitect') {
+      return (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button
+            onClick={() => sendQuickAction('pmAiPartner', 'Com base no modelo BPMN, sugira melhorias de backlog e entregaveis.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-600/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+          >
+            Enviar melhorias PM
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderSmartSuggestions = () => {
+    const { manual, retrabalho, complexo } = bottleneckSignals;
+    const hasSignals = manual || retrabalho || complexo;
+    if (!hasSignals) return null;
+
+    return (
+      <div className={`mb-3 p-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest ${theme === 'light' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-blue-900/20 border-blue-800 text-blue-200'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span>Sinais de gargalo detectados:</span>
+          <div className="flex gap-2 text-[9px]">
+            {manual && <span className="px-2 py-1 rounded bg-emerald-600/10 text-emerald-600 border border-emerald-500/30">Manual</span>}
+            {retrabalho && <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30">Retrabalho</span>}
+            {complexo && <span className="px-2 py-1 rounded bg-red-500/10 text-red-600 border border-red-500/30">Fluxo complexo</span>}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => sendQuickAction('bpmnMasterArchitect', 'Modelar BPMN para automatizar gargalos e reduzir manual/retrabalho.')}
+            className="px-3 py-2 rounded-xl border bg-blue-600/10 text-blue-700 border-blue-500/30 hover:bg-blue-600/20 transition-all"
+          >
+            Sugerir BPMN
+          </button>
+          <button
+            onClick={() => sendQuickAction('pmAiPartner', 'Avaliar automacao e simplificacao de fluxo; priorizar user stories de automacao.')}
+            className="px-3 py-2 rounded-xl border bg-emerald-600/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+          >
+            Sugerir automacao
+          </button>
         </div>
       </div>
     );
@@ -151,6 +281,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
       </div>
 
       <div className={`p-6 border-t ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'}`}>
+        {contextIssues.length > 0 && (
+          <div className={`mb-3 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${theme === 'light' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-900/20 border-amber-800 text-amber-200'}`}>
+            <div className="flex items-center justify-between">
+              <span>Contexto incompleto: {contextIssues.join(', ')}</span>
+              <button onClick={() => navigate('/projects')} className="underline text-[10px]">Ajustar</button>
+            </div>
+          </div>
+        )}
+        {renderSmartSuggestions()}
+        {renderActions()}
         <div className="flex gap-3">
           <textarea
             value={input}
