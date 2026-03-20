@@ -374,7 +374,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept=".txt,.md,.csv,.json,.log"
+              accept=".txt,.md,.csv,.json,.log,.xls,.xlsx"
               onChange={handleFileSelect}
             />
             <button
