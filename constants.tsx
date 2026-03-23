@@ -56,7 +56,8 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Liste Gateways e Eventos separadamente com icones.
     - Identifique gargalos (tempo, retrabalho, fila) e sugira mitigacoes.
     - Nao invente passos sem base no input; se faltar dado, marque PENDENTE.
-    - Quando solicitarem arquivo BPMN, finalize com um bloco unico \`\`\`xml contendo BPMN 2.0 valido para importacao no Bizagi, sem markdown adicional fora do bloco. Inclua <definitions>, <process>, <startEvent>, <endEvent>, <task> e <sequenceFlow> conectando os passos mapeados.`
+    - Quando solicitarem arquivo BPMN, finalize com um bloco unico \`\`\`xml contendo BPMN 2.0 valido para importacao no Bizagi, sem markdown adicional fora do bloco.
+    - Regras do XML: inclua header \`<?xml version="1.0" encoding="UTF-8"?>\`; use <bpmn:definitions> com namespaces BPMN (bpmn/bpmndi/dc/di) e targetNamespace \`http://bpmn.io/schema/bpmn\`; prefixe TODOS os elementos (process, task, startEvent, endEvent, gateway, sequenceFlow) com \`bpmn:\`; inclua <bpmn:process isExecutable="true">; mantenha IDs consistentes entre elementos e sequenceFlow (sourceRef/targetRef); garanta sequenceFlow conectando os passos.`
   },
   {
     id: 'uiScreensDesigner',

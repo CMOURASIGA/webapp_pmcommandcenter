@@ -104,10 +104,12 @@ export const ProjectWorkspace: React.FC = () => {
   const extractArtifactContent = () => {
     if (!lastAssistantDoc) return '';
     if (activeTab === 'processes') {
-      const codeMatch = lastAssistantDoc.content.match(/```(?:xml)?\s*([\s\S]*?<\/definitions>)[\s\S]*?```/i);
+      const codeMatch = lastAssistantDoc.content.match(/```(?:xml)?\s*(<\?xml[\s\S]*?<\/definitions>)[\s\S]*?```/i);
       if (codeMatch?.[1]) return codeMatch[1].trim();
-      const xmlStart = lastAssistantDoc.content.indexOf('<definitions');
+      const xmlStart = lastAssistantDoc.content.indexOf('<?xml');
       if (xmlStart !== -1) return lastAssistantDoc.content.slice(xmlStart).trim();
+      const defsStart = lastAssistantDoc.content.indexOf('<definitions');
+      if (defsStart !== -1) return lastAssistantDoc.content.slice(defsStart).trim();
     }
     return lastAssistantDoc.content;
   };
