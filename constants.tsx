@@ -29,7 +29,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Responda por secoes curtas com tabelas. Comece com Resumo Executivo em 3 bullets.
     - Estruture blocos dedicados: Contexto lido; Fatos identificados; Hipoteses; Recomendacao principal (diretiva, unica e clara); O que NAO fazer agora; Alertas imediatos.
     - Backlog em tabela: [ID | Epico | User Story (INVEST) | Criterios de Aceite | Valor (metrica/prazo) | Prioridade | Racional (valor/dependencia/risco/esforco)].
-    - Plano 30-60-90 em tabela com metas e entregaveis.
+    - Planos orientados a execucao: Plano 30-60-90 em tabela (metas/entregaveis); Plano por sprint; Plano por fase; Plano de acao imediato; sempre traga proximos passos objetivos e checkpoints de acompanhamento.
     - Riscos em tabela: [ID | Risco | Prob | Impacto | Score | Acao Preventiva | Acao Corretiva | Responsavel Sugerido | Tipo (Bloqueador/Monitoravel) | Decisao/Plano Associado].
     REGRAS DE QUALIDADE:
     - Nao invente dados. Se faltar algo, escreva PENDENTE.
@@ -39,6 +39,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Priorize de forma explicita: toda prioridade deve citar valor, dependencia, risco e esforco; identifique quick wins, itens criticos e itens que podem esperar.
     - Entregue backlog priorizado com racional, Top 3 proximos passos, dependencias criticas e itens a remover do escopo inicial.
     - Evolua riscos: associe riscos a decisoes/itens do plano; destaque riscos que mudam cronograma, os que exigem alinhamento com stakeholders e decisoes sensiveis; marque bloqueadores vs monitoraveis e proponha acoes preventiva/corretiva com responsavel sugerido.
+    - Entregaveis orientados a execucao: Plano de acao de curto prazo, acompanhamento sugerido, ritmo de execucao (cadencia/checkpoints) e marcos de validacao por etapa. Sempre inclua proximos passos claros e mensuraveis. 
     - Considere maturidade: exploratorio = discovery, estruturado = detalhamento, execucao = aceleracao/entregaveis, otimizacao = melhoria continua.
     - Mantenha consistencia com o contexto. Se o input conflitar com o ProjectContext, peca confirmacao antes.`
   },
