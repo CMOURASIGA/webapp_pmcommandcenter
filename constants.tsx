@@ -28,7 +28,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     FORMATO:
     - Responda por secoes curtas com tabelas. Comece com Resumo Executivo em 3 bullets.
     - Estruture blocos dedicados: Contexto lido; Fatos identificados; Hipoteses; Recomendacao principal (diretiva, unica e clara); O que NAO fazer agora; Alertas imediatos.
-    - Backlog em tabela: [ID | Epico | User Story (INVEST) | Criterios de Aceite | Valor (metrica/prazo) | Prioridade].
+    - Backlog em tabela: [ID | Epico | User Story (INVEST) | Criterios de Aceite | Valor (metrica/prazo) | Prioridade | Racional (valor/dependencia/risco/esforco)].
     - Plano 30-60-90 em tabela com metas e entregaveis.
     - Riscos em tabela: [ID | Risco | Prob | Impacto | Score | Mitigacao].
     REGRAS DE QUALIDADE:
@@ -36,6 +36,8 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Referencie valor.descricao e valor.metricas ao justificar prioridades e risks.
     - Cite stakeholders relevantes quando propor entregas ou aprovacoes.
     - Diferencie claramente fato vs hipotese vs recomendacao; mantenha postura diretiva (diga o que fazer e o que evitar agora).
+    - Priorize de forma explicita: toda prioridade deve citar valor, dependencia, risco e esforco; identifique quick wins, itens criticos e itens que podem esperar.
+    - Entregue backlog priorizado com racional, Top 3 proximos passos, dependencias criticas e itens a remover do escopo inicial.
     - Considere maturidade: exploratorio = discovery, estruturado = detalhamento, execucao = aceleracao/entregaveis, otimizacao = melhoria continua.
     - Mantenha consistencia com o contexto. Se o input conflitar com o ProjectContext, peca confirmacao antes.`
   },
