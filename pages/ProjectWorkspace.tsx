@@ -125,6 +125,24 @@ export const ProjectWorkspace: React.FC = () => {
     return raw;
   };
 
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+  const buildDocumentContent = () => {
+    if (!lastAssistantDoc) return '';
+    if (activeTab === 'processes') {
+      return sanitizeArtifactContent();
+    }
+    if (activeTab === 'planning' || activeTab === 'overview') {
+      const body = escapeHtml(lastAssistantDoc.content);
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${artifactInfo.filename}</title></head><body><pre style="font-family:Calibri, Arial, sans-serif; font-size:11pt; white-space:pre-wrap; line-height:1.4;">${body}</pre></body></html>`;
+    }
+    return lastAssistantDoc.content;
+  };
+
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
 
   const metrics = useMemo(() => {
@@ -179,13 +197,13 @@ export const ProjectWorkspace: React.FC = () => {
       case 'processes':
         return { filename: `${baseName}-processo.bpmn`, mime: 'application/xml' };
       case 'planning':
-        return { filename: `${baseName}-backlog.docx`, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+        return { filename: `${baseName}-backlog.doc`, mime: 'application/msword' };
       case 'risks':
         return { filename: `${baseName}-riscos.md`, mime: 'text/markdown' };
       case 'design':
         return { filename: `${baseName}-design.md`, mime: 'text/markdown' };
       default: // overview/PM AI outputs
-        return { filename: `${baseName}-artefato.docx`, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+        return { filename: `${baseName}-artefato.doc`, mime: 'application/msword' };
     }
   }, [activeTab, project]);
 
@@ -278,7 +296,7 @@ export const ProjectWorkspace: React.FC = () => {
             <button
               disabled={!hasDoc}
               onClick={() => {
-                const payload = sanitizeArtifactContent();
+                const payload = buildDocumentContent();
                 if (!payload) return;
                 const blob = new Blob([payload], { type: artifactInfo.mime });
                 const url = URL.createObjectURL(blob);
