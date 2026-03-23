@@ -185,6 +185,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           >
             Preparar comunicacao
           </button>
+          <button
+            onClick={() => sendQuickAction('uiScreensDesigner', 'Gerar especificacao funcional de telas: objetivo, tipo de usuario, secoes/componentes (cards, tabelas, filtros), campos e regras, acoes do usuario, comportamento (busca/paginacao/ordenacao), estados (loading/vazio/erro/sem permissao), responsividade e criterios de aceite.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20 transition-all"
+          >
+            Preparar UI
+          </button>
         </div>
       );
     }
