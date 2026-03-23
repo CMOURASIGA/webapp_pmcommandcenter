@@ -114,6 +114,17 @@ export const ProjectWorkspace: React.FC = () => {
     return lastAssistantDoc.content;
   };
 
+  const sanitizeArtifactContent = () => {
+    const raw = extractArtifactContent().trim();
+    const closingTag = '</bpmn:definitions>';
+    const closingIndex = raw.toLowerCase().lastIndexOf(closingTag.toLowerCase());
+    if (closingIndex !== -1) {
+      const sliced = raw.slice(0, closingIndex + closingTag.length).trim();
+      return sliced.endsWith('>') ? sliced : `${sliced}>`;
+    }
+    return raw;
+  };
+
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
 
   const metrics = useMemo(() => {
@@ -267,7 +278,7 @@ export const ProjectWorkspace: React.FC = () => {
             <button
               disabled={!hasDoc}
               onClick={() => {
-                const payload = extractArtifactContent();
+                const payload = sanitizeArtifactContent();
                 if (!payload) return;
                 const blob = new Blob([payload], { type: artifactInfo.mime });
                 const url = URL.createObjectURL(blob);
