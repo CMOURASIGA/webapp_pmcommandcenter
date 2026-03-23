@@ -179,13 +179,13 @@ export const ProjectWorkspace: React.FC = () => {
       case 'processes':
         return { filename: `${baseName}-processo.bpmn`, mime: 'application/xml' };
       case 'planning':
-        return { filename: `${baseName}-backlog.md`, mime: 'text/markdown' };
+        return { filename: `${baseName}-backlog.docx`, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
       case 'risks':
         return { filename: `${baseName}-riscos.md`, mime: 'text/markdown' };
       case 'design':
         return { filename: `${baseName}-design.md`, mime: 'text/markdown' };
-      default:
-        return { filename: `${baseName}-artefato.md`, mime: 'text/markdown' };
+      default: // overview/PM AI outputs
+        return { filename: `${baseName}-artefato.docx`, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
     }
   }, [activeTab, project]);
 
