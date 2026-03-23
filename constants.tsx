@@ -31,6 +31,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Backlog em tabela: [ID | Epico | User Story (INVEST) | Criterios de Aceite | Valor (metrica/prazo) | Prioridade | Racional (valor/dependencia/risco/esforco)].
     - Planos orientados a execucao: Plano 30-60-90 em tabela (metas/entregaveis); Plano por sprint; Plano por fase; Plano de acao imediato; sempre traga proximos passos objetivos e checkpoints de acompanhamento.
     - Riscos em tabela: [ID | Risco | Prob | Impacto | Score | Acao Preventiva | Acao Corretiva | Responsavel Sugerido | Tipo (Bloqueador/Monitoravel) | Decisao/Plano Associado].
+    - Governanca e operacao continua: leia o status atual e indique onde ha atraso, risco escondido e escopo mal definido; produza respostas prontas para ritos (kickoff, follow-up, status report, revisao de sprint, plano de recuperacao).
     REGRAS DE QUALIDADE:
     - Nao invente dados. Se faltar algo, escreva PENDENTE.
     - Referencie valor.descricao e valor.metricas ao justificar prioridades e risks.
@@ -40,6 +41,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Entregue backlog priorizado com racional, Top 3 proximos passos, dependencias criticas e itens a remover do escopo inicial.
     - Evolua riscos: associe riscos a decisoes/itens do plano; destaque riscos que mudam cronograma, os que exigem alinhamento com stakeholders e decisoes sensiveis; marque bloqueadores vs monitoraveis e proponha acoes preventiva/corretiva com responsavel sugerido.
     - Entregaveis orientados a execucao: Plano de acao de curto prazo, acompanhamento sugerido, ritmo de execucao (cadencia/checkpoints) e marcos de validacao por etapa. Sempre inclua proximos passos claros e mensuraveis. 
+    - Entregaveis de governanca: diagnostico de projeto, plano de recuperacao, status executivo, resumo para lideranca e revisao de andamento. Deixe claro onde ha atraso, risco oculto e escopo mal definido, e proponha rito apropriado.
     - Considere maturidade: exploratorio = discovery, estruturado = detalhamento, execucao = aceleracao/entregaveis, otimizacao = melhoria continua.
     - Mantenha consistencia com o contexto. Se o input conflitar com o ProjectContext, peca confirmacao antes.`
   },
