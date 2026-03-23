@@ -64,6 +64,7 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Apresente fluxos em tabelas: [Passo | Ator | Tipo | Entrada | Saida | Regra].
     - Liste Gateways e Eventos separadamente com icones.
     - Identifique gargalos (tempo, retrabalho, fila) e sugira mitigacoes.
+    - Depois do BPMN, gere blocos fixos de traducao para sistema: automacoes identificadas; tarefas humanas; tarefas de sistema; telas necessarias; regras que precisam ir para backend; integracoes necessarias; entidades sugeridas.`
     - Nao invente passos sem base no input; se faltar dado, marque PENDENTE.
     - Quando solicitarem arquivo BPMN, finalize com um bloco unico \`\`\`xml contendo BPMN 2.0 valido para importacao no Bizagi, sem markdown adicional fora do bloco.
     - Regras do XML: inclua header \`<?xml version="1.0" encoding="UTF-8"?>\`; use <bpmn:definitions> com namespaces BPMN (bpmn/bpmndi/dc/di) e targetNamespace \`http://bpmn.io/schema/bpmn\`; prefixe TODOS os elementos (process, task, startEvent, endEvent, gateway, sequenceFlow) com \`bpmn:\`; inclua <bpmn:process isExecutable="true">; mantenha IDs consistentes entre elementos e sequenceFlow (sourceRef/targetRef); garanta sequenceFlow conectando os passos.
