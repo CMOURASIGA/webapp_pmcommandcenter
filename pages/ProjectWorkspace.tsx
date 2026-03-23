@@ -101,6 +101,17 @@ export const ProjectWorkspace: React.FC = () => {
     }
   };
 
+  const extractArtifactContent = () => {
+    if (!lastAssistantDoc) return '';
+    if (activeTab === 'processes') {
+      const codeMatch = lastAssistantDoc.content.match(/```(?:xml)?\s*([\s\S]*?<\/definitions>)[\s\S]*?```/i);
+      if (codeMatch?.[1]) return codeMatch[1].trim();
+      const xmlStart = lastAssistantDoc.content.indexOf('<definitions');
+      if (xmlStart !== -1) return lastAssistantDoc.content.slice(xmlStart).trim();
+    }
+    return lastAssistantDoc.content;
+  };
+
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
 
   const metrics = useMemo(() => {
@@ -254,8 +265,9 @@ export const ProjectWorkspace: React.FC = () => {
             <button
               disabled={!hasDoc}
               onClick={() => {
-                if (!lastAssistantDoc) return;
-                const blob = new Blob([lastAssistantDoc.content], { type: artifactInfo.mime });
+                const payload = extractArtifactContent();
+                if (!payload) return;
+                const blob = new Blob([payload], { type: artifactInfo.mime });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;

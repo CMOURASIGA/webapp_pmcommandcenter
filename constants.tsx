@@ -55,7 +55,8 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Apresente fluxos em tabelas: [Passo | Ator | Tipo | Entrada | Saida | Regra].
     - Liste Gateways e Eventos separadamente com icones.
     - Identifique gargalos (tempo, retrabalho, fila) e sugira mitigacoes.
-    - Nao invente passos sem base no input; se faltar dado, marque PENDENTE.`
+    - Nao invente passos sem base no input; se faltar dado, marque PENDENTE.
+    - Quando solicitarem arquivo BPMN, finalize com um bloco unico \`\`\`xml contendo BPMN 2.0 valido para importacao no Bizagi, sem markdown adicional fora do bloco. Inclua <definitions>, <process>, <startEvent>, <endEvent>, <task> e <sequenceFlow> conectando os passos mapeados.`
   },
   {
     id: 'uiScreensDesigner',
