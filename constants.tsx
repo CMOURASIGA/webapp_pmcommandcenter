@@ -57,7 +57,9 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Identifique gargalos (tempo, retrabalho, fila) e sugira mitigacoes.
     - Nao invente passos sem base no input; se faltar dado, marque PENDENTE.
     - Quando solicitarem arquivo BPMN, finalize com um bloco unico \`\`\`xml contendo BPMN 2.0 valido para importacao no Bizagi, sem markdown adicional fora do bloco.
-    - Regras do XML: inclua header \`<?xml version="1.0" encoding="UTF-8"?>\`; use <bpmn:definitions> com namespaces BPMN (bpmn/bpmndi/dc/di) e targetNamespace \`http://bpmn.io/schema/bpmn\`; prefixe TODOS os elementos (process, task, startEvent, endEvent, gateway, sequenceFlow) com \`bpmn:\`; inclua <bpmn:process isExecutable="true">; mantenha IDs consistentes entre elementos e sequenceFlow (sourceRef/targetRef); garanta sequenceFlow conectando os passos.`
+    - Regras do XML: inclua header \`<?xml version="1.0" encoding="UTF-8"?>\`; use <bpmn:definitions> com namespaces BPMN (bpmn/bpmndi/dc/di) e targetNamespace \`http://bpmn.io/schema/bpmn\`; prefixe TODOS os elementos (process, task, startEvent, endEvent, gateway, sequenceFlow) com \`bpmn:\`; inclua <bpmn:process isExecutable="true">; mantenha IDs consistentes entre elementos e sequenceFlow (sourceRef/targetRef); garanta sequenceFlow conectando os passos.
+    - Regras BPMNDI obrigatorias: para cada elemento logico (startEvent, task, gateway, endEvent) gerar um bpmndi:BPMNShape; para cada sequenceFlow gerar bpmndi:BPMNEdge com waypoints origem/destino. Layout automatico horizontal: X inicia em 100, incrementa +150 por elemento; tamanhos padrao (task 120x80, gateway 50x50, event 36x36). Gateway: branch TRUE sobe y-40; FALSE desce y+80. Origem/centro define waypoint origem, destino/centro define waypoint final. Sequencia de geracao: definitions, process, BPMNDiagram, BPMNPlane, shapes, edges.
+    - Valide antes de imprimir: IDs unicos; todos os sequenceFlow com sourceRef/targetRef validos; todos os elementos do process aparecem em BPMNDI; nao gerar XML incompleto.`
   },
   {
     id: 'uiScreensDesigner',
