@@ -179,6 +179,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           >
             Analisar risco
           </button>
+          <button
+            onClick={() => sendQuickAction('stakeholderCommsWriter', 'Preparar comunicacao executiva aos stakeholders com base no resumo anterior e contexto. Inclua mensagem principal, versao completa, versao resumida e acao esperada.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-purple-500/10 text-purple-700 border-purple-500/30 hover:bg-purple-500/20 transition-all"
+          >
+            Preparar comunicacao
+          </button>
         </div>
       );
     }
