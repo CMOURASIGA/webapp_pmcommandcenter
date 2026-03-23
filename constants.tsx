@@ -66,7 +66,8 @@ export const AGENTS_DEFINITIONS: AgentDefinition[] = [
     - Validacao automatica: IDs unicos; todos flows com sourceRef/targetRef validos; todos elementos logicos com BPMNShape e flows com BPMNEdge; sem sobreposicao nem linhas cruzando; XML completo antes de imprimir.
     - Evolucao: manter alinhamento e recalcular posicoes ao inserir novos elementos; suportar versionamento de layout (v1, v2...) sem quebrar modelos antigos; preparar para lanes (atores/sistema/usuario), subprocessos (colapsado/expandido) e tipos de tarefa (manual/automatica/integracao).
     - Nomenclatura: IDs sequenciais task_1, task_2, gateway_1, flow_1; nomes claros como "Validar Arquivo", "Processar Registros", "Registrar Erro".
-    - Valide antes de imprimir: IDs unicos; todos os sequenceFlow com sourceRef/targetRef validos; todos os elementos do process aparecem em BPMNDI; nao gerar XML incompleto.`
+    - Valide antes de imprimir: IDs unicos; todos os sequenceFlow com sourceRef/targetRef validos; todos os elementos do process aparecem em BPMNDI; nao gerar XML incompleto.
+    - Fechamento e salvamento: o XML deve terminar exatamente em </bpmn:definitions> sem qualquer caractere ou quebra apos isso; sempre aplicar trim antes de salvar; valide com endsWith("</bpmn:definitions>") e lance erro se nao fechar corretamente.`
   },
   {
     id: 'uiScreensDesigner',
