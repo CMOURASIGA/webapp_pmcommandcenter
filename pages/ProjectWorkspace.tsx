@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectsStore } from '../store/useProjectsStore';
 import { useChatStore } from '../store/useChatStore';
@@ -48,6 +48,8 @@ const TABS: TabConfig[] = [
   { id: 'meetings', label: AGENTS_MAP.meetingDocsCopilot.displayName, icon: FileText, description: 'Decis�es e a��es.', agentId: 'meetingDocsCopilot' },
 ];
 
+const EMPTY_DOCS: any[] = [];
+
 export const ProjectWorkspace: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -63,13 +65,12 @@ export const ProjectWorkspace: React.FC = () => {
   const [valorMetricas, setValorMetricas] = useState(projectContext.valor.metricas.join(', '));
   const [valorPrazo, setValorPrazo] = useState(projectContext.valor.prazo);
 
+  const lastContextIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
+    if (lastContextIdRef.current === id) return;
+    lastContextIdRef.current = id;
     const next = getContext(id);
-    setProjectContext((prev) => {
-      // evita loop de render: so atualiza se algo mudou de fato
-      if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev;
-      return next;
-    });
+    setProjectContext(next);
   }, [id]);
 
   const activeAgent = useMemo(() => 
@@ -82,7 +83,7 @@ export const ProjectWorkspace: React.FC = () => {
     [id, activeTab, activeAgent]
   );
 
-  const docMessages = useChatStore((state) => state.chats[chatId] || []);
+  const docMessages = useChatStore((state) => state.chats[chatId] || EMPTY_DOCS);
   const lastAssistantDoc = useMemo(() => [...docMessages].reverse().find((m) => m.role === 'assistant') || null, [docMessages]);
   const lastAttachments = useMemo(
     () =>
