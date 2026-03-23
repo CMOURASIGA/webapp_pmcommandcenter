@@ -64,8 +64,13 @@ export const ProjectWorkspace: React.FC = () => {
   const [valorPrazo, setValorPrazo] = useState(projectContext.valor.prazo);
 
   useEffect(() => {
-    setProjectContext(getContext(id));
-  }, [activeTab, id]);
+    const next = getContext(id);
+    setProjectContext((prev) => {
+      // evita loop de render: so atualiza se algo mudou de fato
+      if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev;
+      return next;
+    });
+  }, [id]);
 
   const activeAgent = useMemo(() => 
     TABS.find(t => t.id === activeTab) || TABS[0], 
