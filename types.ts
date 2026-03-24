@@ -176,3 +176,12 @@ export type AgentType =
   | 'COMMS'
   | 'DELIVERY'
   | 'TECH';
+
+export type ArtifactType =
+  | 'EXECUTIVE_REPORT'
+  | 'RISK_ANALYSIS'
+  | 'UI_SPEC'
+  | 'TECH_ARCH'
+  | 'METRICS'
+  | 'COMMUNICATION'
+  | 'BPMN';

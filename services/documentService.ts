@@ -1,3 +1,5 @@
+import { AgentId, ArtifactType } from '../types';
+
 type DocumentSection = {
   title: string;
   content: string;
@@ -193,4 +195,76 @@ export function generateDocumentHTML({ title, projectName, date, sections }: Gen
   </body>
   </html>
   `;
+}
+
+export const agentArtifactMap: Record<AgentId, ArtifactType> = {
+  pmAiPartner: 'EXECUTIVE_REPORT',
+  bpmnMasterArchitect: 'BPMN',
+  riskDecisionAnalyst: 'RISK_ANALYSIS',
+  uiScreensDesigner: 'UI_SPEC',
+  stakeholderCommsWriter: 'COMMUNICATION',
+  metricsReportingArchitect: 'METRICS',
+  meetingDocsCopilot: 'COMMUNICATION',
+  techArchitect: 'TECH_ARCH',
+};
+
+function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): DocumentSection[] {
+  switch (type) {
+    case 'RISK_ANALYSIS':
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Cenário / Contexto', content: parsed.contexto || '' },
+        { title: 'Riscos', content: parsed.riscos || '' },
+        { title: 'Opções / Ações', content: parsed.acoes || '' },
+        { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
+      ];
+    case 'UI_SPEC':
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Contexto', content: parsed.contexto || '' },
+        { title: 'Estrutura de Tela / Fluxo', content: parsed.backlog || parsed.acoes || '' },
+        { title: 'Comportamento e Regras', content: parsed.plano || parsed.acoes || '' },
+        { title: 'Estados e Critérios', content: parsed.proximosPassos || '' },
+      ];
+    case 'TECH_ARCH':
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Arquitetura Geral', content: parsed.contexto || '' },
+        { title: 'Componentes / Entidades', content: parsed.backlog || parsed.plano || '' },
+        { title: 'APIs / Integrações', content: parsed.acoes || parsed.riscos || '' },
+        { title: 'Pontos de Atenção', content: parsed.proximosPassos || '' },
+      ];
+    case 'METRICS':
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Métricas', content: parsed.metricas || parsed.backlog || '' },
+        { title: 'Riscos / Alertas', content: parsed.riscos || '' },
+        { title: 'Ações', content: parsed.acoes || '' },
+        { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
+      ];
+    case 'COMMUNICATION':
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Mensagem', content: parsed.contexto || parsed.acoes || '' },
+        { title: 'Ações / Call To Action', content: parsed.proximosPassos || '' },
+      ];
+    case 'EXECUTIVE_REPORT':
+    default:
+      return [
+        { title: 'Resumo Executivo', content: parsed.resumo || '' },
+        { title: 'Contexto', content: parsed.contexto || '' },
+        { title: 'Backlog', content: parsed.backlog || '' },
+        { title: 'Plano 30-60-90', content: parsed.plano || '' },
+        { title: 'Riscos', content: parsed.riscos || '' },
+        { title: 'Ações', content: parsed.acoes || '' },
+        { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
+      ];
+  }
+}
+
+export function renderDocumentForAgent(agentId: AgentId, rawContent: string, title: string, projectName?: string) {
+  const parsed = parseAgentOutput(rawContent);
+  const artifactType = agentArtifactMap[agentId] || 'EXECUTIVE_REPORT';
+  const sections = sectionsByArtifact(artifactType, parsed);
+  return generateDocumentHTML({ title, projectName, sections });
 }

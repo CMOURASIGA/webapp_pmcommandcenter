@@ -25,7 +25,7 @@ import { SuggestionCard } from '../components/SuggestionCard';
 import { TechOutputViewer } from '../components/TechOutputViewer';
 import { AgentId, ProjectContext, ProjectProfile } from '../types';
 import { getContext, updateContext, getHistory } from '../services/contextService';
-import { generateDocumentHTML, parseAgentOutput } from '../services/documentService';
+import { renderDocumentForAgent } from '../services/documentService';
 import { ensureProject, getProject, updateProject } from '../services/projectService';
 import { AGENTS_MAP } from '../constants';
 import ReactMarkdown from 'react-markdown';
@@ -176,24 +176,7 @@ export const ProjectWorkspace: React.FC = () => {
       return sanitizeArtifactContent();
     }
 
-    const parsed = parseAgentOutput(lastAssistantDoc.content);
-    const sections = [
-      { title: 'Resumo Executivo', content: parsed.resumo || '' },
-      { title: 'Contexto', content: parsed.contexto || '' },
-      { title: 'Backlog', content: parsed.backlog || '' },
-      { title: 'Plano 30-60-90', content: parsed.plano || '' },
-      { title: 'Riscos', content: parsed.riscos || '' },
-      { title: 'Ações', content: parsed.acoes || '' },
-      { title: 'Workflow / Processo', content: parsed.contexto || '' },
-      { title: 'Métricas', content: parsed.metricas || '' },
-      { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
-    ];
-
-    return generateDocumentHTML({
-      title: docPanelTitle,
-      projectName: project?.name,
-      sections,
-    });
+    return renderDocumentForAgent(activeAgent.agentId, lastAssistantDoc.content, docPanelTitle, project?.name);
   };
 
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
