@@ -228,6 +228,25 @@ export const agentArtifactMap: Record<AgentId, ArtifactType> = {
 };
 
 function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): DocumentSection[] {
+  const buildUiMock = () => {
+    const lines = (parsed.ui || parsed.backlog || '').split('\n').map((l) => l.trim()).filter(Boolean);
+    const header = lines.slice(0, 3).join(' · ') || 'Tela / Página';
+    const chips = lines.slice(3, 8).map((c) => `<span class="chip">${c}</span>`).join(' ');
+    const list = lines.slice(8, 14).map((l) => `<li>${l}</li>`).join('');
+    return `
+      <div class="ui-mock">
+        <div class="pane">
+          <h4>Menu / Filtros</h4>
+          ${chips || '<span class="chip">Filtro</span><span class="chip">Status</span>'}
+        </div>
+        <div class="pane">
+          <h4>${header}</h4>
+          <ul class="list">${list || '<li>Bloco de cards</li><li>Tabela com ações</li><li>Indicadores</li>'}</ul>
+        </div>
+      </div>
+    `;
+  };
+
   switch (type) {
     case 'RISK_ANALYSIS':
       return [
@@ -245,6 +264,7 @@ function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): Docu
         { title: 'Estrutura de Tela / Fluxo', content: parsed.backlog || parsed.acoes || '' },
         { title: 'Comportamento e Regras', content: parsed.plano || parsed.acoes || '' },
         { title: 'Estados e Critérios', content: parsed.proximosPassos || '' },
+        { title: 'Mockup Visual (HTML)', content: buildUiMock() },
       ];
     case 'TECH_ARCH':
       return [

@@ -164,6 +164,43 @@ tbody tr:nth-child(odd) { background: #fff; }
   box-shadow: 0 8px 18px rgba(242,101,34,0.25);
 }
 
+.ui-mock {
+  border: 1px dashed rgba(15,23,42,0.2);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 12px;
+  background: #fff7f2;
+}
+.ui-mock .pane {
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(15,23,42,0.05);
+}
+.ui-mock .pane h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.ui-mock .chip {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(242,101,34,0.12);
+  color: var(--brand);
+  margin: 2px;
+  font-size: 12px;
+  border: 1px solid rgba(242,101,34,0.2);
+}
+.ui-mock .list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: var(--muted);
+}
+
 @media (max-width: 640px) {
   body { padding: 12px; }
   .doc { border-radius: 12px; }
