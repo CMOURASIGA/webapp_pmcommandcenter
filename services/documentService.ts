@@ -10,6 +10,87 @@ interface GenerateDocumentParams {
   sections: DocumentSection[];
 }
 
+type ParsedAgentOutput = {
+  resumo: string;
+  backlog: string;
+  plano: string;
+  riscos: string;
+  acoes: string;
+  proximosPassos: string;
+  contexto: string;
+  metricas?: string;
+};
+
+export function parseAgentOutput(text: string): ParsedAgentOutput {
+  const lines = text.split('\n');
+  const map: Record<string, string[]> = {};
+  let current = 'RESUMO_EXECUTIVO';
+
+  const SECTION_KEYS = [
+    'RESUMO_EXECUTIVO',
+    'BACKLOG',
+    'PLANO_30_60_90',
+    'RISCOS',
+    'ACOES',
+    'PROXIMOS_PASSOS',
+    'CONTEXTO',
+    'METRICAS',
+  ];
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    const match = line.match(/^([A-Z_]+):\s*$/);
+    if (match && SECTION_KEYS.includes(match[1])) {
+      current = match[1];
+      map[current] = [];
+      continue;
+    }
+    map[current] = map[current] || [];
+    map[current].push(raw);
+  }
+
+  const join = (key: string) => (map[key] || []).join('\n').trim();
+
+  return {
+    resumo: join('RESUMO_EXECUTIVO') || text,
+    backlog: join('BACKLOG'),
+    plano: join('PLANO_30_60_90'),
+    riscos: join('RISCOS'),
+    acoes: join('ACOES'),
+    proximosPassos: join('PROXIMOS_PASSOS'),
+    contexto: join('CONTEXTO'),
+    metricas: join('METRICAS'),
+  };
+}
+
+function markdownTableToHtml(block: string): string {
+  const rows = block
+    .split('\n')
+    .map((r) => r.trim())
+    .filter(Boolean)
+    .filter((r) => r.includes('|'))
+    .map((r) => r.replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
+  if (rows.length === 0) return '';
+  const [head, ...body] = rows;
+  const thead = `<thead><tr>${head.map((c) => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const tbody = `<tbody>${body.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  return `<table>${thead}${tbody}</table>`;
+}
+
+function markdownToHtml(markdown: string): string {
+  const blocks = markdown.split(/\n\s*\n/).filter(Boolean);
+  return blocks
+    .map((block) => {
+      const trimmed = block.trim();
+      if (trimmed.includes('|')) {
+        const table = markdownTableToHtml(trimmed);
+        if (table) return table;
+      }
+      return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
+    })
+    .join('\n');
+}
+
 export function generateDocumentHTML({ title, projectName, date, sections }: GenerateDocumentParams): string {
   const safeDate = date || new Date().toLocaleDateString('pt-BR');
   const headerProject = projectName || 'Projeto';
@@ -19,7 +100,7 @@ export function generateDocumentHTML({ title, projectName, date, sections }: Gen
       (section) => `
         <section class="doc-section">
           <h2>${section.title}</h2>
-          <div class="doc-content">${section.content}</div>
+          <div class="doc-content">${markdownToHtml(section.content)}</div>
         </section>
       `
     )

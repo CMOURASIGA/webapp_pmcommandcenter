@@ -25,7 +25,7 @@ import { SuggestionCard } from '../components/SuggestionCard';
 import { TechOutputViewer } from '../components/TechOutputViewer';
 import { AgentId, ProjectContext, ProjectProfile } from '../types';
 import { getContext, updateContext, getHistory } from '../services/contextService';
-import { generateDocumentHTML } from '../services/documentService';
+import { generateDocumentHTML, parseAgentOutput } from '../services/documentService';
 import { ensureProject, getProject, updateProject } from '../services/projectService';
 import { AGENTS_MAP } from '../constants';
 import ReactMarkdown from 'react-markdown';
@@ -176,15 +176,17 @@ export const ProjectWorkspace: React.FC = () => {
       return sanitizeArtifactContent();
     }
 
-    const base = escapeHtml(lastAssistantDoc.content).replace(/\n/g, '<br/>');
+    const parsed = parseAgentOutput(lastAssistantDoc.content);
     const sections = [
-      { title: 'Título', content: project?.name || 'Relatório' },
-      { title: 'Resumo Executivo', content: base },
-      { title: 'Contexto', content: base },
-      { title: 'Backlog (Tabela)', content: base },
-      { title: 'Workflow / Processo', content: base },
-      { title: 'Métricas', content: base },
-      { title: 'Próximos Passos', content: base },
+      { title: 'Resumo Executivo', content: parsed.resumo || '' },
+      { title: 'Contexto', content: parsed.contexto || '' },
+      { title: 'Backlog', content: parsed.backlog || '' },
+      { title: 'Plano 30-60-90', content: parsed.plano || '' },
+      { title: 'Riscos', content: parsed.riscos || '' },
+      { title: 'Ações', content: parsed.acoes || '' },
+      { title: 'Workflow / Processo', content: parsed.contexto || '' },
+      { title: 'Métricas', content: parsed.metricas || '' },
+      { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
     ];
 
     return generateDocumentHTML({
