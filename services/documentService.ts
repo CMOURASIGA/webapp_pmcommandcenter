@@ -21,7 +21,15 @@ type ParsedAgentOutput = {
   proximosPassos: string;
   contexto: string;
   metricas?: string;
+  mensagem?: string;
+  decisoes?: string;
+  ui?: string;
+  tech?: string;
 };
+
+function cleanLine(line: string): string {
+  return line.replace(/^#+\s*/, '').replace(/^-{3,}\s*$/, '').trim();
+}
 
 export function parseAgentOutput(text: string): ParsedAgentOutput {
   const lines = text.split('\n');
@@ -37,10 +45,14 @@ export function parseAgentOutput(text: string): ParsedAgentOutput {
     'PROXIMOS_PASSOS',
     'CONTEXTO',
     'METRICAS',
+    'MENSAGEM',
+    'DECISOES',
+    'UI',
+    'TECH',
   ];
 
   for (const raw of lines) {
-    const line = raw.trim();
+    const line = cleanLine(raw);
     const match = line.match(/^([A-Z_]+):\s*$/);
     if (match && SECTION_KEYS.includes(match[1])) {
       current = match[1];
@@ -48,7 +60,7 @@ export function parseAgentOutput(text: string): ParsedAgentOutput {
       continue;
     }
     map[current] = map[current] || [];
-    map[current].push(raw);
+    if (line) map[current].push(line);
   }
 
   const join = (key: string) => (map[key] || []).join('\n').trim();
@@ -62,6 +74,10 @@ export function parseAgentOutput(text: string): ParsedAgentOutput {
     proximosPassos: join('PROXIMOS_PASSOS'),
     contexto: join('CONTEXTO'),
     metricas: join('METRICAS'),
+    mensagem: join('MENSAGEM'),
+    decisoes: join('DECISOES'),
+    ui: join('UI'),
+    tech: join('TECH'),
   };
 }
 
@@ -70,7 +86,7 @@ function markdownTableToHtml(block: string): string {
     .split('\n')
     .map((r) => r.trim())
     .filter(Boolean)
-    .filter((r) => r.includes('|'))
+    .filter((r) => r.includes('|') && !/^[-|: ]+$/.test(r))
     .map((r) => r.replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
   if (rows.length === 0) return '';
   const [head, ...body] = rows;
@@ -182,9 +198,12 @@ export function generateDocumentHTML({ title, projectName, date, sections }: Gen
   <body>
     <div class="doc">
       <header>
-        <div>
-          <div class="meta">PM Commander OS · ${headerProject}</div>
-          <h1>${title}</h1>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="https://i.imgur.com/GUOMwkI.png" alt="Logo" style="height:32px;"/>
+          <div>
+            <div class="meta">PM Commander OS · ${headerProject}</div>
+            <h1>${title}</h1>
+          </div>
         </div>
         <div class="meta">${safeDate}</div>
       </header>
@@ -215,7 +234,7 @@ function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): Docu
         { title: 'Resumo Executivo', content: parsed.resumo || '' },
         { title: 'Cenário / Contexto', content: parsed.contexto || '' },
         { title: 'Riscos', content: parsed.riscos || '' },
-        { title: 'Opções / Ações', content: parsed.acoes || '' },
+        { title: 'Opções / Ações', content: parsed.acoes || parsed.decisoes || '' },
         { title: 'Próximos Passos', content: parsed.proximosPassos || '' },
       ];
     case 'UI_SPEC':
@@ -231,7 +250,7 @@ function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): Docu
         { title: 'Resumo Executivo', content: parsed.resumo || '' },
         { title: 'Arquitetura Geral', content: parsed.contexto || '' },
         { title: 'Componentes / Entidades', content: parsed.backlog || parsed.plano || '' },
-        { title: 'APIs / Integrações', content: parsed.acoes || parsed.riscos || '' },
+        { title: 'APIs / Integrações', content: parsed.acoes || parsed.tech || '' },
         { title: 'Pontos de Atenção', content: parsed.proximosPassos || '' },
       ];
     case 'METRICS':
@@ -265,6 +284,6 @@ function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): Docu
 export function renderDocumentForAgent(agentId: AgentId, rawContent: string, title: string, projectName?: string) {
   const parsed = parseAgentOutput(rawContent);
   const artifactType = agentArtifactMap[agentId] || 'EXECUTIVE_REPORT';
-  const sections = sectionsByArtifact(artifactType, parsed);
+  const sections = sectionsByArtifact(artifactType, parsed).filter((s) => s.content && s.content.trim().length > 0);
   return generateDocumentHTML({ title, projectName, sections });
 }
