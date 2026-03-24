@@ -235,9 +235,15 @@ export const ProjectWorkspace: React.FC = () => {
       case 'planning':
         return { filename: `${baseName}-backlog.html`, mime: 'text/html' };
       case 'risks':
-        return { filename: `${baseName}-riscos.md`, mime: 'text/markdown' };
+        return { filename: `${baseName}-riscos.html`, mime: 'text/html' };
       case 'design':
-        return { filename: `${baseName}-design.md`, mime: 'text/markdown' };
+        return { filename: `${baseName}-design.html`, mime: 'text/html' };
+      case 'metrics':
+        return { filename: `${baseName}-metricas.html`, mime: 'text/html' };
+      case 'comms':
+        return { filename: `${baseName}-comunicacao.html`, mime: 'text/html' };
+      case 'meetings':
+        return { filename: `${baseName}-ata.html`, mime: 'text/html' };
       default: // overview/PM AI outputs
         return { filename: `${baseName}-artefato.html`, mime: 'text/html' };
     }
