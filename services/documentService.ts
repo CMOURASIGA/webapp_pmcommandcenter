@@ -241,6 +241,7 @@ function sectionsByArtifact(type: ArtifactType, parsed: ParsedAgentOutput): Docu
       return [
         { title: 'Resumo Executivo', content: parsed.resumo || '' },
         { title: 'Contexto', content: parsed.contexto || '' },
+        { title: 'Telas Propostas', content: parsed.ui || parsed.backlog || parsed.acoes || '' },
         { title: 'Estrutura de Tela / Fluxo', content: parsed.backlog || parsed.acoes || '' },
         { title: 'Comportamento e Regras', content: parsed.plano || parsed.acoes || '' },
         { title: 'Estados e Critérios', content: parsed.proximosPassos || '' },
