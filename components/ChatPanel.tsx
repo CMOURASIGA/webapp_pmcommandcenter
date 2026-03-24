@@ -1,9 +1,9 @@
-
+﻿
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Trash2, AlertTriangle, Loader2, Bot, User, Settings as SettingsIcon, RefreshCw, Activity, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { AgentId, ChatMessage } from '../types';
+import { AgentId, ChatMessage, Interaction, OrchestrationSuggestion, ProjectProfile } from '../types';
 import { useChatStore } from '../store/useChatStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -11,27 +11,40 @@ import { sendMessageToAgent } from '../services/aiService';
 import { AGENTS_MAP } from '../constants';
 import { useNavigate } from 'react-router-dom';
 import { getContext, validateContext } from '../services/contextService';
+import { saveInteraction, saveExecution } from '../services/projectService';
 import * as XLSX from 'xlsx';
 
 interface ChatPanelProps {
   agentId: AgentId;
   projectId?: string;
+  projectName?: string;
+  stage?: string;
+  onInteractionSaved?: (interaction: Interaction, project?: ProjectProfile | null) => void;
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = [];
 const MAX_ROWS_PREVIEW = 20;
 const MAX_COLS_PREVIEW = 10;
+const ORCHESTRATION_AGENT_MAP: Record<OrchestrationSuggestion['nextAgent'], AgentId> = {
+  BPMN: 'bpmnMasterArchitect',
+  RISK: 'riskDecisionAnalyst',
+  UI: 'uiScreensDesigner',
+  COMMS: 'stakeholderCommsWriter',
+  DELIVERY: 'metricsReportingArchitect',
+  TECH: 'techArchitect',
+};
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId, projectName, stage, onInteractionSaved }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errorType, setErrorType] = useState<string | null>(null);
+  const [orchestrationSuggestion, setOrchestrationSuggestion] = useState<OrchestrationSuggestion | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
-  const context = useMemo(() => getContext(), []);
+  const context = useMemo(() => getContext(projectId), [projectId]);
   const contextIssues = useMemo(() => validateContext(context), [context]);
 
   const chatId = useMemo(() => 
@@ -51,10 +64,35 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
   const contextDensity = useMemo(() => {
     const count = messages.length;
     if (count === 0) return { label: 'Vazio', color: 'text-slate-400', icon: Activity };
-    if (count < 5) return { label: 'Otimizado', color: 'text-emerald-500', icon: Zap };
+    if (count < 5) return { label: 'Otimizado', color: 'text-brand-500', icon: Zap };
     if (count < 12) return { label: 'Médio', color: 'text-amber-500', icon: Activity };
     return { label: 'Pesado', color: 'text-red-500', icon: AlertTriangle };
   }, [messages]);
+
+  const deriveSuggestion = (text: string): OrchestrationSuggestion | null => {
+    const content = text.toLowerCase();
+    if (!content) return null;
+
+    const score = (keywords: string[]) => keywords.reduce((acc, k) => (content.includes(k) ? acc + 1 : acc), 0);
+
+    const candidates: Array<{ nextAgent: OrchestrationSuggestion['nextAgent']; reason: string; score: number }> = [
+      { nextAgent: 'BPMN', reason: 'Fluxo ou processo detectado', score: score(['processo', 'fluxo', 'bpmn', 'gateway', 'swimlane']) },
+      { nextAgent: 'RISK', reason: 'Riscos ou dependências mencionados', score: score(['risco', 'impacto', 'probabilidade', 'mitigacao', 'dependencia']) },
+      { nextAgent: 'UI', reason: 'Interfaces ou telas descritas', score: score(['tela', 'interface', 'ui', 'ux', 'protótipo', 'wireframe']) },
+      { nextAgent: 'COMMS', reason: 'Comunicação com stakeholders', score: score(['comunic', 'email', 'mensagem', 'executivo', 'stakeholder']) },
+      { nextAgent: 'DELIVERY', reason: 'Entrega ou monitoramento de execução', score: score(['entrega', 'deploy', 'roadmap', 'cronograma', 'release']) },
+      { nextAgent: 'TECH', reason: 'Arquitetura técnica necessária', score: score(['arquitetura', 'api', 'endpoint', 'modelo de dados', 'entidade', 'integracao', 'servico', 'backend']) },
+    ];
+
+    const sorted = candidates.sort((a, b) => b.score - a.score);
+    const top = sorted[0];
+    if (!top || top.score === 0) return null;
+
+    const confidence: OrchestrationSuggestion['confidence'] =
+      top.score >= 3 ? 'alta' : top.score === 2 ? 'media' : 'baixa';
+
+    return { nextAgent: top.nextAgent, reason: top.reason, confidence };
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -84,6 +122,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     try {
       const response = await sendMessageToAgent(agentId, [...messages, userMessage], settings, projectId);
       addMessage(chatId, response);
+      recordInteraction(userMessage.content, agentId, response.content);
     } catch (err: any) {
       setErrorType(err.message);
     } finally {
@@ -114,6 +153,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     [messages]
   );
 
+  useEffect(() => {
+    if (agentId !== 'pmAiPartner') {
+      setOrchestrationSuggestion(null);
+      return;
+    }
+    const suggestion = lastAssistantMessage ? deriveSuggestion(lastAssistantMessage.content) : null;
+    setOrchestrationSuggestion(suggestion);
+  }, [agentId, lastAssistantMessage]);
+
   const bottleneckSignals = useMemo(() => {
     const text = (lastAssistantMessage?.content || '').toLowerCase();
     if (!text) return { manual: false, retrabalho: false, complexo: false };
@@ -125,6 +173,37 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     const complexo = gatewayCount >= 2 || arrowCount >= 6 || lineCount >= 30;
     return { manual, retrabalho, complexo };
   }, [lastAssistantMessage]);
+
+  const recordInteraction = (inputText: string, agent: AgentId, outputText: string) => {
+    if (!projectId) return;
+    const interaction: Interaction = {
+      id: crypto.randomUUID(),
+      input: inputText,
+      agente: agent,
+      output: outputText,
+      data: new Date().toISOString(),
+      etapa: stage,
+    };
+    const saved = saveInteraction(
+      projectId,
+      interaction,
+      {
+        nome: projectName,
+        etapa: stage,
+        ultimaAcao: outputText,
+        contexto: { objetivo: context.objetivo, escopo: context.escopo, stakeholders: context.stakeholders },
+      }
+    );
+    if (onInteractionSaved) onInteractionSaved(interaction, saved);
+
+    if (agent === 'techArchitect') {
+      saveExecution(projectId, {
+        tipo: 'TECH',
+        resumo: outputText.slice(0, 180),
+        data: new Date().toISOString(),
+      });
+    }
+  };
 
   const sendQuickAction = async (targetAgent: AgentId, instruction: string) => {
     const targetSettings = settingsByAgent[targetAgent];
@@ -148,6 +227,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     try {
       const response = await sendMessageToAgent(targetAgent, [userMessage], targetSettings, projectId);
       addMessage(actionChatId, response);
+      recordInteraction(userMessage.content, targetAgent, response.content);
       // feedback visual: opcional, não limpa input principal
     } catch (err: any) {
       setErrorType(err.message);
@@ -169,7 +249,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           </button>
           <button
             onClick={() => sendQuickAction('pmAiPartner', 'A partir do contexto e do resumo, gere backlog INVEST detalhado.')}
-            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-600/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-brand-600/10 text-brand-600 border-brand-500/30 hover:bg-brand-600/20 transition-all"
           >
             Gerar backlog
           </button>
@@ -187,9 +267,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           </button>
           <button
             onClick={() => sendQuickAction('uiScreensDesigner', 'Gerar especificacao funcional de telas: objetivo, tipo de usuario, secoes/componentes (cards, tabelas, filtros), campos e regras, acoes do usuario, comportamento (busca/paginacao/ordenacao), estados (loading/vazio/erro/sem permissao), responsividade e criterios de aceite.')}
-            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20 transition-all"
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-brand-500/10 text-brand-700 border-brand-500/30 hover:bg-brand-500/20 transition-all"
           >
             Preparar UI
+          </button>
+          <button
+            onClick={() => sendQuickAction('techArchitect', 'Gerar arquitetura técnica: resumo executivo, arquitetura geral, componentes, entidades, APIs, regras de negócio backend, integrações, eventos e pontos de atenção. Usar tabelas.')}
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-slate-900/10 text-brand-700 border-brand-500/30 hover:bg-brand-500/20 transition-all"
+          >
+            Gerar arquitetura TECH
           </button>
         </div>
       );
@@ -200,7 +286,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         <div className="flex flex-wrap gap-2 mb-3">
           <button
             onClick={() => sendQuickAction('pmAiPartner', 'Com base no modelo BPMN, sugira melhorias de backlog e entregaveis.')}
-            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-emerald-600/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-brand-600/10 text-brand-600 border-brand-500/30 hover:bg-brand-600/20 transition-all"
           >
             Enviar melhorias PM
           </button>
@@ -220,7 +306,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         <div className="flex items-center justify-between mb-2">
           <span>Sinais de gargalo detectados:</span>
           <div className="flex gap-2 text-[9px]">
-            {manual && <span className="px-2 py-1 rounded bg-emerald-600/10 text-emerald-600 border border-emerald-500/30">Manual</span>}
+            {manual && <span className="px-2 py-1 rounded bg-brand-600/10 text-brand-600 border border-brand-500/30">Manual</span>}
             {retrabalho && <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30">Retrabalho</span>}
             {complexo && <span className="px-2 py-1 rounded bg-red-500/10 text-red-600 border border-red-500/30">Fluxo complexo</span>}
           </div>
@@ -234,9 +320,78 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
           </button>
           <button
             onClick={() => sendQuickAction('pmAiPartner', 'Avaliar automacao e simplificacao de fluxo; priorizar user stories de automacao.')}
-            className="px-3 py-2 rounded-xl border bg-emerald-600/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-600/20 transition-all"
+            className="px-3 py-2 rounded-xl border bg-brand-600/10 text-brand-700 border-brand-500/30 hover:bg-brand-600/20 transition-all"
           >
             Sugerir automacao
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPostTechContinuation = () => {
+    if (agentId !== 'techArchitect' || !lastAssistantMessage) return null;
+    return (
+      <div className={`mb-3 p-4 rounded-2xl border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900/60 border-slate-700/50'}`}>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-500">Próximo passo recomendado</p>
+            <p className={`text-sm font-black ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>→ Gerar backlog técnico detalhado</p>
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-2">Use a arquitetura definida para listar épicos técnicos, integrações e prioridades.</p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <button
+            onClick={() => sendQuickAction('pmAiPartner', 'Consolidar a saída técnica em backlog técnico detalhado: épicos técnicos, user stories técnicas, APIs e dependências. Priorizar próximos passos e riscos.')}
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md shadow-brand-500/20 transition-all"
+          >
+            Executar
+          </button>
+        </div>
+      </div>
+    );
+  };
+  const renderOrchestration = () => {
+    if (!orchestrationSuggestion || agentId !== 'pmAiPartner') return null;
+    const targetAgent = ORCHESTRATION_AGENT_MAP[orchestrationSuggestion.nextAgent];
+    const labels: Record<OrchestrationSuggestion['nextAgent'], string> = {
+      BPMN: 'Modelar processo com BPMN',
+      RISK: 'Rodar análise de risco',
+      UI: 'Gerar especificação de UI',
+      COMMS: 'Preparar comunicação',
+      DELIVERY: 'Planejar entrega/execução',
+      TECH: 'Gerar arquitetura técnica',
+    };
+
+    return (
+      <div className={`mb-3 p-4 rounded-2xl border text-sm ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900/60 border-slate-700/50'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-500">Sugestão do sistema</p>
+            <p className={`text-sm font-black ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
+              → {labels[orchestrationSuggestion.nextAgent]}
+            </p>
+          </div>
+          <span className="text-[10px] font-black uppercase px-3 py-1 rounded-xl border bg-brand-500/10 text-brand-700 border-brand-500/20">
+            Confiança {orchestrationSuggestion.confidence}
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-2">Motivo: {orchestrationSuggestion.reason}</p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <button
+            onClick={() => {
+              sendQuickAction(targetAgent, `Executar próxima etapa sugerida: ${labels[orchestrationSuggestion.nextAgent]}. Motivo: ${orchestrationSuggestion.reason}.`);
+              setOrchestrationSuggestion(null);
+            }}
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md shadow-brand-500/20 transition-all"
+          >
+            Confirmar execução
+          </button>
+          <button
+            onClick={() => setOrchestrationSuggestion(null)}
+            className="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400"
+          >
+            Escolher outro caminho
           </button>
         </div>
       </div>
@@ -297,6 +452,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
       setIsLoading(true);
       const response = await sendMessageToAgent(agentId, [...messages, userMessage], settings, projectId);
       addMessage(chatId, response);
+      recordInteraction(userMessage.content, agentId, response.content);
     } catch (err: any) {
       setErrorType(err.message || 'Erro ao ler anexo.');
     } finally {
@@ -314,7 +470,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         theme === 'light' ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'
       }`}>
         <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-emerald-500/10 rounded-2xl text-emerald-500">
+          <div className="p-2.5 bg-brand-500/10 rounded-2xl text-brand-500">
             <Bot size={20} />
           </div>
           <div>
@@ -334,12 +490,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             <div className={`flex gap-3 w-full ${m.role === 'user' ? 'flex-row-reverse max-w-[85%]' : 'max-w-full'}`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-lg ${m.role === 'user' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-lg ${m.role === 'user' ? 'bg-blue-600' : 'bg-brand-600'}`}>
                 {m.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
               </div>
               <div className={`p-5 rounded-3xl border shadow-sm markdown-content w-full ${
                 m.role === 'user' 
-                  ? 'bg-blue-600/10 text-blue-100 border-blue-500/20' 
+                  ? (theme === 'light' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-blue-600/10 text-blue-100 border-blue-500/20')
                   : (theme === 'light' ? 'bg-slate-50 text-slate-800 border-slate-200' : 'bg-slate-900/60 text-slate-200 border-slate-700/50')
               }`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -351,10 +507,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
         ))}
         {isLoading && (
           <div className="flex items-center gap-3 animate-pulse p-4">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <RefreshCw size={14} className="text-emerald-500 animate-spin" />
+            <div className="w-8 h-8 rounded-xl bg-brand-500/20 flex items-center justify-center">
+              <RefreshCw size={14} className="text-brand-500 animate-spin" />
             </div>
-            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Processando Inteligência...</span>
+            <span className="text-[10px] font-black uppercase text-brand-500 tracking-widest">Processando Inteligência...</span>
           </div>
         )}
         {renderError()}
@@ -369,7 +525,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             </div>
           </div>
         )}
+        {renderOrchestration()}
         {renderSmartSuggestions()}
+        {renderPostTechContinuation()}
         {renderActions()}
         <div className="flex gap-3">
           <textarea
@@ -377,7 +535,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
             placeholder={`Envie ordens para ${agentDef.displayName}...`}
-            className={`flex-1 border rounded-2xl px-5 py-4 text-sm focus:outline-none resize-none h-16 shadow-inner transition-all focus:ring-2 focus:ring-emerald-500/20 ${
+            className={`flex-1 border rounded-2xl px-5 py-4 text-sm focus:outline-none resize-none h-16 shadow-inner transition-all focus:ring-2 focus:ring-brand-500/20 ${
               theme === 'light' ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-slate-950 border-slate-700 text-white placeholder-slate-600'
             }`}
           />
@@ -392,14 +550,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading || isLoading}
-              className="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-500 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-400 hover:text-brand-500 disabled:opacity-50"
             >
               {isUploading ? 'Lendo...' : 'Anexar'}
             </button>
             <button 
               onClick={handleSend} 
               disabled={!input.trim() || isLoading} 
-              className="w-16 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+              className="w-16 bg-brand-600 hover:bg-brand-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-brand-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
             >
               <Send size={20} />
             </button>
@@ -409,3 +567,5 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId }) => {
     </div>
   );
 };
+
+

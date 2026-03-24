@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectsStore } from '../store/useProjectsStore';
@@ -21,8 +21,11 @@ import {
   Paperclip
 } from 'lucide-react';
 import { ChatPanel } from '../components/ChatPanel';
-import { AgentId, ProjectContext } from '../types';
+import { SuggestionCard } from '../components/SuggestionCard';
+import { TechOutputViewer } from '../components/TechOutputViewer';
+import { AgentId, ProjectContext, ProjectProfile } from '../types';
 import { getContext, updateContext, getHistory } from '../services/contextService';
+import { ensureProject, getProject, updateProject } from '../services/projectService';
 import { AGENTS_MAP } from '../constants';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -38,15 +41,26 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { id: 'overview', label: AGENTS_MAP.pmAiPartner.displayName, icon: Layout, description: 'Vis�o executiva.', agentId: 'pmAiPartner' },
-  { id: 'planning', label: AGENTS_MAP.pmAiPartner.displayName, icon: Target, description: 'Hist�rias INVEST.', agentId: 'pmAiPartner' },
-  { id: 'processes', label: AGENTS_MAP.bpmnMasterArchitect.displayName, icon: Workflow, description: 'Modelos compat�veis.', agentId: 'bpmnMasterArchitect' },
+  { id: 'overview', label: AGENTS_MAP.pmAiPartner.displayName, icon: Layout, description: 'Visão executiva.', agentId: 'pmAiPartner' },
+  { id: 'planning', label: AGENTS_MAP.pmAiPartner.displayName, icon: Target, description: 'Histórias INVEST.', agentId: 'pmAiPartner' },
+  { id: 'processes', label: AGENTS_MAP.bpmnMasterArchitect.displayName, icon: Workflow, description: 'Modelos compatíveis.', agentId: 'bpmnMasterArchitect' },
   { id: 'risks', label: AGENTS_MAP.riskDecisionAnalyst.displayName, icon: AlertTriangle, description: 'Matriz de calor.', agentId: 'riskDecisionAnalyst' },
   { id: 'design', label: AGENTS_MAP.uiScreensDesigner.displayName, icon: LayoutTemplate, description: 'UX/UI flows.', agentId: 'uiScreensDesigner' },
   { id: 'comms', label: AGENTS_MAP.stakeholderCommsWriter.displayName, icon: MessageSquare, description: 'Updates semanais.', agentId: 'stakeholderCommsWriter' },
-  { id: 'metrics', label: AGENTS_MAP.metricsReportingArchitect.displayName, icon: BarChart3, description: 'KPIs e sa�de.', agentId: 'metricsReportingArchitect' },
-  { id: 'meetings', label: AGENTS_MAP.meetingDocsCopilot.displayName, icon: FileText, description: 'Decis�es e a��es.', agentId: 'meetingDocsCopilot' },
+  { id: 'metrics', label: AGENTS_MAP.metricsReportingArchitect.displayName, icon: BarChart3, description: 'KPIs e saúde.', agentId: 'metricsReportingArchitect' },
+  { id: 'meetings', label: AGENTS_MAP.meetingDocsCopilot.displayName, icon: FileText, description: 'Decisões e ações.', agentId: 'meetingDocsCopilot' },
 ];
+
+const TAB_LABELS: Record<TabId, string> = {
+  overview: 'Visão Geral',
+  planning: 'Planejamento',
+  processes: 'Processos',
+  risks: 'Riscos',
+  design: 'Design',
+  comms: 'Comunicações',
+  metrics: 'Métricas',
+  meetings: 'Reuniões',
+};
 
 const EMPTY_DOCS: any[] = [];
 
@@ -64,6 +78,7 @@ export const ProjectWorkspace: React.FC = () => {
   const [valorStakeholders, setValorStakeholders] = useState(projectContext.valor.stakeholders.join(', '));
   const [valorMetricas, setValorMetricas] = useState(projectContext.valor.metricas.join(', '));
   const [valorPrazo, setValorPrazo] = useState(projectContext.valor.prazo);
+  const [projectProfile, setProjectProfile] = useState<ProjectProfile | null>(null);
 
   const lastContextIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -73,17 +88,34 @@ export const ProjectWorkspace: React.FC = () => {
     setProjectContext(next);
   }, [id]);
 
+  useEffect(() => {
+    if (!project) return;
+    const seeded = ensureProject(project.id, project.name, { objetivo: project.objective, escopo: project.methodology, stakeholders: [] });
+    setProjectProfile(seeded);
+  }, [project]);
+
   const activeAgent = useMemo(() => 
     TABS.find(t => t.id === activeTab) || TABS[0], 
     [activeTab]
   );
+
+  const stageLabel = useMemo(() => TAB_LABELS[activeTab] || 'Operação', [activeTab]);
 
   const chatId = useMemo(() => 
     `${id}-${activeTab === 'overview' ? 'pmAiPartner' : activeAgent.agentId}`,
     [id, activeTab, activeAgent]
   );
 
+  useEffect(() => {
+    if (!project) return;
+    const updated = updateProject(project.id, { etapa: stageLabel });
+    setProjectProfile(updated || getProject(project.id));
+  }, [project, stageLabel]);
+
   const docMessages = useChatStore((state) => state.chats[chatId] || EMPTY_DOCS);
+  const techChatId = `${id}-techArchitect`;
+  const techMessages = useChatStore((state) => state.chats[techChatId] || EMPTY_DOCS);
+  const techLast = useMemo(() => [...techMessages].reverse().find((m) => m.role === 'assistant') || null, [techMessages]);
   const lastAssistantDoc = useMemo(() => [...docMessages].reverse().find((m) => m.role === 'assistant') || null, [docMessages]);
   const lastAttachments = useMemo(
     () =>
@@ -170,7 +202,7 @@ export const ProjectWorkspace: React.FC = () => {
       timeProgress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
       if (timeProgress > 90 && !hasStarted) { healthStatus = 'Atrasado'; healthColor = 'text-red-600'; }
       else if (timeProgress > 50 && !hasStarted) { healthStatus = 'Aten��o'; healthColor = 'text-amber-600'; }
-      else { healthStatus = 'Em Dia'; healthColor = 'text-emerald-600'; }
+      else { healthStatus = 'Em Dia'; healthColor = 'text-brand-600'; }
     } else {
       timeProgress = hasStarted ? 10 : 0;
       healthStatus = hasStarted ? 'Em Execu��o' : 'In�cio';
@@ -213,16 +245,48 @@ export const ProjectWorkspace: React.FC = () => {
     }
   }, [activeTab, project]);
 
+  const renderContextBar = () => {
+    if (!project) return null;
+    const ultimaAcao = projectProfile?.ultimaAcao || 'Nenhuma ação registrada';
+    const etapaAtual = projectProfile?.etapa || stageLabel;
+    const historicoTotal = projectProfile?.historico?.length || 0;
+
+    return (
+      <div className={`flex flex-wrap items-center gap-3 border p-4 rounded-2xl shadow ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-500">Barra de contexto</span>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-tight">
+          <span className="px-3 py-1 rounded-xl bg-brand-500/10 text-brand-700 border border-brand-500/20">Projeto: {project.name}</span>
+          <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Etapa: {etapaAtual}</span>
+          <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Última ação: {ultimaAcao}</span>
+          <span className="px-3 py-1 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">Interações: {historicoTotal}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSuggestion = () => {
+    if (!project) return null;
+    return (
+      <SuggestionCard
+        title="Criar fluxo BPMN"
+        reason="Baseado na etapa atual, sugerimos estruturar o processo antes de detalhar entregas."
+        primaryLabel="Executar sugestão"
+        onPrimary={() => setActiveTab('processes')}
+        onSecondary={() => setActiveTab('planning')}
+      />
+    );
+  };
+
   const renderValueCard = () => (
     <div className={`border p-6 rounded-[32px] space-y-6 shadow-xl ${theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'}`}>
-      <h3 className="text-emerald-600 font-black flex items-center gap-2 text-xs uppercase tracking-wider"><Target size={18}/> Valor do Projeto</h3>
+      <h3 className="text-brand-600 font-black flex items-center gap-2 text-xs uppercase tracking-wider"><Target size={18}/> Valor do Projeto</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Descricao de Valor</label>
           <textarea 
             value={valorDescricao} 
             onChange={(e) => setValorDescricao(e.target.value)}
-            className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 h-24 resize-none transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+            className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 h-24 resize-none transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
             placeholder="Descreva o valor esperado..."
           />
         </div>
@@ -232,7 +296,7 @@ export const ProjectWorkspace: React.FC = () => {
             <input 
               value={valorStakeholders} 
               onChange={(e) => setValorStakeholders(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
               placeholder="PM, Cliente, Suporte"
             />
           </div>
@@ -241,7 +305,7 @@ export const ProjectWorkspace: React.FC = () => {
             <input 
               value={valorMetricas} 
               onChange={(e) => setValorMetricas(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
               placeholder="NPS, CSAT, Adocao"
             />
           </div>
@@ -250,7 +314,7 @@ export const ProjectWorkspace: React.FC = () => {
             <input 
               value={valorPrazo} 
               onChange={(e) => setValorPrazo(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
               placeholder="90 dias"
             />
           </div>
@@ -274,7 +338,7 @@ export const ProjectWorkspace: React.FC = () => {
             );
             setProjectContext(updated);
           }}
-          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-500/20"
+          className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-all shadow-md shadow-brand-500/20"
         >
           Salvar Valor
         </button>
@@ -290,13 +354,13 @@ export const ProjectWorkspace: React.FC = () => {
       }`}>
         <div className="flex items-center justify-between gap-3 border-b pb-3">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Sincronizado</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-brand-500">Sincronizado</p>
             <h4 className={`text-lg font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
               {docPanelTitle}
             </h4>
           </div>
           <div className="flex gap-2">
-            <div className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+            <div className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-brand-500/10 text-brand-600 border border-brand-500/20">
               Live Engine Active
             </div>
             <button
@@ -314,7 +378,7 @@ export const ProjectWorkspace: React.FC = () => {
               }}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors ${
                 hasDoc 
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow shadow-emerald-500/30' 
+                  ? 'bg-brand-600 text-white hover:bg-brand-500 shadow shadow-brand-500/30' 
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
               }`}
               title="Baixar a ultima versao do artefato"
@@ -370,7 +434,7 @@ export const ProjectWorkspace: React.FC = () => {
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       <header className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <button onClick={() => navigate('/projects')} className="group flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-all text-xs font-black uppercase tracking-widest w-fit">
+          <button onClick={() => navigate('/projects')} className="group flex items-center gap-2 text-slate-500 hover:text-brand-600 transition-all text-xs font-black uppercase tracking-widest w-fit">
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar aos Projetos
           </button>
           
@@ -390,16 +454,16 @@ export const ProjectWorkspace: React.FC = () => {
         <div className={`border p-8 rounded-[40px] shadow-2xl relative overflow-hidden transition-colors group ${
           theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
         }`}>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full -mr-32 -mt-32"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 blur-3xl rounded-full -mr-32 -mt-32"></div>
           
           <div className="relative z-10 flex-1 min-w-0 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 text-[10px] font-black rounded-lg border border-emerald-500/20 uppercase tracking-widest">{project.methodology}</span>
+              <span className="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] font-black rounded-lg border border-brand-500/20 uppercase tracking-widest">{project.methodology}</span>
               <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
               <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">ID: {project.id.slice(0, 8)}</span>
             </div>
             
-            <h2 className={`text-4xl md:text-5xl font-black tracking-tighter leading-tight uppercase group-hover:text-emerald-600 transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
+            <h2 className={`text-4xl md:text-5xl font-black tracking-tighter leading-tight uppercase group-hover:text-brand-600 transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
               {project.name}
             </h2>
             
@@ -409,6 +473,9 @@ export const ProjectWorkspace: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {renderContextBar()}
+      {renderSuggestion()}
 
       <div className="sticky top-4 z-40">
         <div className={`flex items-center gap-1 p-2 rounded-[28px] border overflow-x-auto whitespace-nowrap scrollbar-hide shadow-2xl backdrop-blur-xl ${
@@ -423,7 +490,7 @@ export const ProjectWorkspace: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
                   isActive 
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' 
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
                     : `hover:bg-slate-100 dark:hover:bg-slate-800 ${theme === 'light' ? 'text-slate-500' : 'text-slate-500 hover:text-slate-200'}`
                 }`}
               >
@@ -437,12 +504,12 @@ export const ProjectWorkspace: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-h-[600px]">
-          <div className={`border p-6 rounded-[32px] border-l-4 border-l-emerald-600 shadow-xl transition-colors ${
+          <div className={`border p-6 rounded-[32px] border-l-4 border-l-brand-600 shadow-xl transition-colors ${
             theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'
           }`}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${theme === 'light' ? 'bg-slate-50 text-emerald-600 border border-slate-100' : 'bg-slate-800 text-emerald-400'}`}>
+                <div className={`p-3 rounded-2xl ${theme === 'light' ? 'bg-slate-50 text-brand-600 border border-slate-100' : 'bg-slate-800 text-brand-400'}`}>
                   <Eye size={22} />
                 </div>
                 <div>
@@ -457,7 +524,7 @@ export const ProjectWorkspace: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black text-slate-500 uppercase">Progresso</span>
-                  <span className="text-[11px] font-black text-emerald-500">{metrics?.timeProgress || 0}%</span>
+                  <span className="text-[11px] font-black text-brand-500">{metrics?.timeProgress || 0}%</span>
                 </div>
               </div>
             </div>
@@ -469,17 +536,23 @@ export const ProjectWorkspace: React.FC = () => {
             <ChatPanel 
               agentId={activeAgent.agentId} 
               projectId={id} 
+              projectName={project.name}
+              stage={stageLabel}
+              onInteractionSaved={(_, saved) => setProjectProfile(saved || getProject(project.id))}
               key={chatId}
             />
           </div>
         </div>
 
-        <div className="lg:col-span-5 xl:col-span-4">
-          <div className="sticky top-28 space-y-4">
-            {renderDocumentationPanel()}
-          </div>
+      <div className="lg:col-span-5 xl:col-span-4">
+        <div className="sticky top-28 space-y-4">
+          {renderDocumentationPanel()}
+          {techLast && <TechOutputViewer content={techLast.content} theme={theme} />}
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
+
+

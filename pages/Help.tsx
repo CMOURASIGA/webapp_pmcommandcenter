@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { AGENTS_DEFINITIONS } from '../constants';
 import { useThemeStore } from '../store/useThemeStore';
@@ -41,7 +41,7 @@ const AgentDocCard = ({ agent, isLight }: any) => {
     <div className={`border rounded-[32px] overflow-hidden shadow-lg transition-all ${isLight ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'}`}>
       <div className={`p-6 md:p-8 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${isLight ? 'bg-slate-50/50 border-slate-100' : 'bg-slate-800/30 border-slate-800'}`}>
         <div className="flex items-center gap-5">
-          <div className={`p-3 rounded-2xl border ${isLight ? 'bg-white border-slate-200 text-emerald-600' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>
+          <div className={`p-3 rounded-2xl border ${isLight ? 'bg-white border-slate-200 text-brand-600' : 'bg-slate-800 border-slate-700 text-brand-400'}`}>
             <Bot size={28} />
           </div>
           <div>
@@ -53,7 +53,7 @@ const AgentDocCard = ({ agent, isLight }: any) => {
           onClick={copyPrompt}
           className={`flex items-center gap-2 text-[9px] font-black uppercase px-4 py-2 rounded-xl border transition-all w-full sm:w-auto justify-center ${
             copied 
-              ? 'bg-emerald-600 text-white border-emerald-500' 
+              ? 'bg-brand-600 text-white border-brand-500' 
               : (isLight ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200 hover:bg-slate-700')
           }`}
         >
@@ -71,7 +71,7 @@ const AgentDocCard = ({ agent, isLight }: any) => {
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agent.usageTips.map((tip: string, i: number) => (
               <li key={i} className={`flex gap-3 text-[11px] font-bold uppercase tracking-tight p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-100 text-slate-500' : 'bg-slate-800/40 border-slate-700/50 text-slate-400'}`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1 flex-shrink-0"></div>
                 {tip}
               </li>
             ))}
@@ -89,42 +89,42 @@ export const Help: React.FC = () => {
   return (
     <div className="space-y-16 md:space-y-24 pb-20 max-w-6xl mx-auto animate-in fade-in duration-700">
       <header className="text-center space-y-6 px-4">
-        <div className="inline-flex p-5 bg-emerald-500/10 text-emerald-500 rounded-[32px] shadow-2xl shadow-emerald-500/10 mb-4">
+        <div className="inline-flex p-5 bg-brand-500/10 text-brand-500 rounded-[32px] shadow-2xl shadow-brand-500/10 mb-4">
           <HelpCircle size={48} />
         </div>
         <h2 className={`text-4xl md:text-6xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Manual do Operador</h2>
         <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-xl font-bold leading-relaxed uppercase tracking-tight">
-          Configure o "DNA" de cada especialista e veja como o cockpit orquestra contextos e fluxos automÃ¡ticos.
+          Configure o "DNA" de cada especialista e veja como o cockpit orquestra contextos e fluxos automáticos.
         </p>
       </header>
 
       {/* Como usar agora */}
       <section className="space-y-6 px-4">
         <div className={`flex items-center gap-4 border-b pb-4 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
-          <LayoutDashboard className="text-emerald-500" size={28} />
+          <LayoutDashboard className="text-brand-500" size={28} />
           <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Como o cockpit funciona hoje</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Contexto por projeto</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Contexto por projeto</p>
             <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-              Cada projeto tem ProjectContext prÃ³prio (objetivo, valor, backlog, riscos, processos, decisÃµes, maturidade) e histÃ³rico de versÃµes automÃ¡tico.
+              Cada projeto tem ProjectContext próprio (objetivo, valor, backlog, riscos, processos, decisões, maturidade) e histórico de versões automático.
             </p>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">AÃ§Ãµes inteligentes</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Ações inteligentes</p>
             <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-              Respostas do PM trazem botÃµes (Gerar BPMN, Gerar Backlog, Analisar Risco) e a detecÃ§Ã£o de gargalos sugere BPMN/AutomaÃ§Ã£o sem pedir.
+              Respostas do PM trazem botões (Gerar BPMN, Gerar Backlog, Analisar Risco) e a detecção de gargalos sugere BPMN/Automação sem pedir.
             </p>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Maturidade</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Maturidade</p>
             <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-              PM AI adapta backlog/planos ao nÃ­vel (exploratorio, estruturado, execucao, otimizacao) enviado no contexto.
+              PM AI adapta backlog/planos ao nível (exploratório, estruturado, execução, otimização) enviado no contexto.
             </p>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Tema claro/escuro</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Tema claro/escuro</p>
             <p className={`text-sm font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
               Use o toggle no topo ou no menu lateral para alternar palheta e manter seu estilo de trabalho.
             </p>
@@ -135,7 +135,7 @@ export const Help: React.FC = () => {
       {/* Orquestração Granular */}
       <section className="space-y-12 px-4">
         <div className={`flex items-center gap-4 border-b pb-6 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
-          <BrainCircuit className="text-emerald-500" size={32} />
+          <BrainCircuit className="text-brand-500" size={32} />
           <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Definindo a Inteligência</h3>
         </div>
 
@@ -143,7 +143,7 @@ export const Help: React.FC = () => {
           <div className={`p-8 md:p-12 rounded-[48px] border relative overflow-hidden flex flex-col justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
+                <div className="p-3 bg-brand-500/10 text-brand-500 rounded-2xl">
                   <Database size={24} />
                 </div>
                 <h4 className={`text-xl font-black uppercase tracking-tighter ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Especialistas Agnósticos</h4>
@@ -152,7 +152,7 @@ export const Help: React.FC = () => {
                 No Cockpit, cada agente pode ter sua própria configuração de API. Você pode usar o <b>Google AI Studio</b> globalmente ou definir modelos específicos para tarefas diferentes:
               </p>
               <ul className="space-y-3">
-                <li className="flex items-center gap-3 text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
+                <li className="flex items-center gap-3 text-[10px] font-black uppercase text-brand-500 bg-brand-500/5 p-3 rounded-xl border border-brand-500/10">
                   <Wand2 size={14} /> UI Designer &rarr; Gemini 2.5 Flash Image (Design)
                 </li>
                 <li className="flex items-center gap-3 text-[10px] font-black uppercase text-blue-500 bg-blue-500/5 p-3 rounded-xl border border-blue-500/10">
@@ -161,7 +161,7 @@ export const Help: React.FC = () => {
               </ul>
             </div>
             <div className="mt-8">
-              <Link to="/settings" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
+              <Link to="/settings" className="bg-brand-600 hover:bg-brand-500 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-xl shadow-brand-600/20 active:scale-95 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
                 Definir APIs Agora <Settings2 size={16} />
               </Link>
             </div>
@@ -199,13 +199,13 @@ export const Help: React.FC = () => {
       {/* Manual dos Agentes */}
       <section className="space-y-12 px-4">
         <div className={`flex items-center gap-4 border-b pb-6 ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-slate-100'}`}>
-          <BookOpen className="text-emerald-500" size={32} />
+          <BookOpen className="text-brand-500" size={32} />
           <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Manual dos Especialistas</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para PM AI</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Como pedir para PM AI</p>
             <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
               <li>- “Gere backlog INVEST citando valor.metricas e prazo”.</li>
               <li>- “Plano 30-60-90 alinhado ao nivel de maturidade”.</li>
@@ -213,7 +213,7 @@ export const Help: React.FC = () => {
             </ul>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para BPMN</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Como pedir para BPMN</p>
             <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
               <li>- “Modele AS IS vs TO BE com Humano/Sistema”.</li>
               <li>- “Destacar gargalos e propor automacao”.</li>
@@ -221,7 +221,7 @@ export const Help: React.FC = () => {
             </ul>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para Riscos</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Como pedir para Riscos</p>
             <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
               <li>- “Mapeie riscos por area e gere matriz com score”.</li>
               <li>- “Adicionar plano de mitigacao coerente com valor.metricas”.</li>
@@ -229,7 +229,7 @@ export const Help: React.FC = () => {
             </ul>
           </div>
           <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Como pedir para UI/Comms/Metrics/Docs</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">Como pedir para UI/Comms/Metrics/Docs</p>
             <ul className="text-[11px] font-bold uppercase tracking-tight space-y-2 text-slate-600 dark:text-slate-300">
               <li>- UI: “Especificar tela em tabela de componentes (Elemento|Tipo|Comportamento|Validacao)”.</li>
               <li>- Comms: “Status semanal em semaforo e próximos passos”.</li>
@@ -248,13 +248,13 @@ export const Help: React.FC = () => {
 
       {/* Footer Final */}
       <div className={`mx-4 p-8 md:p-16 rounded-[40px] md:rounded-[60px] text-center space-y-8 shadow-2xl relative overflow-hidden group ${isLight ? 'bg-white border border-slate-200' : 'bg-slate-900 border border-slate-800'}`}>
-        <div className={`absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full -mr-48 -mt-48 transition-all ${isLight ? 'bg-emerald-500/5' : 'bg-emerald-500/10'}`}></div>
+        <div className={`absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full -mr-48 -mt-48 transition-all ${isLight ? 'bg-brand-500/5' : 'bg-brand-500/10'}`}></div>
         <h4 className={`text-3xl md:text-4xl font-black tracking-tight uppercase ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>Configuração Concluída?</h4>
         <p className="text-slate-500 max-w-lg mx-auto font-black uppercase text-[10px] md:text-xs tracking-[0.2em] leading-relaxed">
           Salve suas configurações na tela de Inteligência para que as ferramentas usem os provedores corretos.
         </p>
         <div className="pt-6 flex flex-col sm:flex-row justify-center gap-4 md:gap-6 relative z-10">
-          <Link to="/settings" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all shadow-2xl shadow-emerald-600/20 active:scale-95 uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-3">
+          <Link to="/settings" className="bg-brand-600 hover:bg-brand-500 text-white font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all shadow-2xl shadow-brand-600/20 active:scale-95 uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-3">
             Ir para Configurações <Settings2 size={20} />
           </Link>
           <Link to="/projects" className={`font-black py-4 md:py-5 px-8 md:px-12 rounded-2xl md:rounded-3xl transition-all active:scale-95 uppercase tracking-widest text-[10px] md:text-xs border flex items-center justify-center gap-3 ${isLight ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>
@@ -265,3 +265,8 @@ export const Help: React.FC = () => {
     </div>
   );
 };
+
+
+
+
+

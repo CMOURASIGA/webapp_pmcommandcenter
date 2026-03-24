@@ -96,20 +96,20 @@ export const Settings: React.FC = () => {
 
           return (
             <div key={agent.id} className={`border rounded-[40px] p-8 md:p-10 transition-all hover:shadow-2xl group ${
-              isLight ? 'bg-white border-slate-200 hover:border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-emerald-500/30'
+              isLight ? 'bg-white border-slate-200 hover:border-brand-500' : 'bg-slate-950 border-slate-800 hover:border-brand-500/30'
             }`}>
               <div className="flex flex-col xl:flex-row gap-12">
                 {/* Identity Sidebar */}
                 <div className="xl:w-1/4 space-y-6">
                   <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border-2 transition-all duration-500 ${
                     hasManualKey 
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500' 
+                      ? 'bg-brand-500/10 border-brand-500 text-brand-500' 
                       : (isLight ? 'bg-slate-50 border-slate-100 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600')
                   }`}>
                     <Cpu size={32} strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h4 className={`text-xl font-black uppercase tracking-tight transition-colors ${isLight ? 'text-slate-900' : 'text-slate-100'} group-hover:text-emerald-500`}>
+                    <h4 className={`text-xl font-black uppercase tracking-tight transition-colors ${isLight ? 'text-slate-900' : 'text-slate-100'} group-hover:text-brand-500`}>
                       {agent.displayName}
                     </h4>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-60 mt-1">{agent.category}</p>
@@ -117,7 +117,7 @@ export const Settings: React.FC = () => {
                   
                   <div className="flex flex-col gap-2">
                     <div className={`flex items-center gap-2 text-[8px] font-black px-3 py-1.5 rounded-lg border uppercase tracking-widest w-fit ${
-                      settings.provider === 'google-ai-studio' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      settings.provider === 'google-ai-studio' ? 'bg-brand-500/10 text-brand-500 border-brand-500/20' :
                       settings.provider === 'openai' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
                       settings.provider === 'anthropic' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
                       'bg-slate-500/10 text-slate-400 border-slate-500/20'
@@ -135,12 +135,12 @@ export const Settings: React.FC = () => {
                     <div className="space-y-6">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <Layers size={14} className="text-emerald-500"/> Provedor de IA
+                          <Layers size={14} className="text-brand-500"/> Provedor de IA
                         </label>
                         <select 
                           value={settings.provider}
                           onChange={(e) => handleUpdate(agent.id, 'provider', e.target.value)}
-                          className={`w-full border rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
+                          className={`w-full border rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
                             isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900 border-slate-800 text-white'
                           }`}
                         >
@@ -157,7 +157,7 @@ export const Settings: React.FC = () => {
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
                           <span className="flex items-center gap-2"><Key size={14} /> Chave de API</span>
-                          {hasManualKey && <span className="text-emerald-500 text-[8px] font-black uppercase flex items-center gap-1 animate-pulse"><Check size={10}/> Ativa</span>}
+                          {hasManualKey && <span className="text-brand-500 text-[8px] font-black uppercase flex items-center gap-1 animate-pulse"><Check size={10}/> Ativa</span>}
                         </label>
                         <div className="relative">
                           <input 
@@ -165,7 +165,7 @@ export const Settings: React.FC = () => {
                             value={settings.apiKey || ''}
                             onChange={(e) => handleUpdate(agent.id, 'apiKey', e.target.value)}
                             placeholder={`Chave para ${settings.provider?.toUpperCase()}...`}
-                            className={`w-full border rounded-2xl px-6 py-4 pr-14 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all ${
+                            className={`w-full border rounded-2xl px-6 py-4 pr-14 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/30 transition-all ${
                               isLight ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'
                             }`}
                           />
@@ -205,7 +205,7 @@ export const Settings: React.FC = () => {
                           type="range" min="0" max="1" step="0.1"
                           value={settings.temperature ?? 0.7}
                           onChange={(e) => handleUpdate(agent.id, 'temperature', parseFloat(e.target.value))}
-                          className="w-full h-1.5 rounded-full accent-emerald-500 bg-slate-200 dark:bg-slate-800 appearance-none"
+                          className="w-full h-1.5 rounded-full accent-brand-500 bg-slate-200 dark:bg-slate-800 appearance-none"
                         />
                       </div>
                     </div>
@@ -218,7 +218,7 @@ export const Settings: React.FC = () => {
       </section>
 
       {saveStatus && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-10 py-5 rounded-[28px] shadow-2xl flex items-center gap-4 z-[100] border border-emerald-400/30 backdrop-blur-md">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brand-600 text-white px-10 py-5 rounded-[28px] shadow-2xl flex items-center gap-4 z-[100] border border-brand-400/30 backdrop-blur-md">
           <Save size={20} strokeWidth={3} />
           <span className="text-xs font-black uppercase tracking-[0.1em]">{saveStatus}</span>
         </div>
@@ -226,3 +226,4 @@ export const Settings: React.FC = () => {
     </div>
   );
 };
+

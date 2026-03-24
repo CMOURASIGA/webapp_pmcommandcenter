@@ -28,6 +28,7 @@ export const useSettingsStore = create<SettingsState>()(
         stakeholderCommsWriter: { ...defaultSettings },
         metricsReportingArchitect: { ...defaultSettings },
         meetingDocsCopilot: { ...defaultSettings },
+        techArchitect: { ...defaultSettings },
       },
       customApiKey: '',
       updateAgentSettings: (agentId, partial) =>

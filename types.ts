@@ -5,7 +5,14 @@ export type AgentId =
   | 'riskDecisionAnalyst'
   | 'stakeholderCommsWriter'
   | 'metricsReportingArchitect'
-  | 'meetingDocsCopilot';
+  | 'meetingDocsCopilot'
+  | 'techArchitect';
+
+export type OrchestrationSuggestion = {
+  nextAgent: 'BPMN' | 'RISK' | 'UI' | 'COMMS' | 'DELIVERY' | 'TECH';
+  reason: string;
+  confidence: 'baixa' | 'media' | 'alta';
+};
 
 export type ProjectStatus = 'Ativo' | 'Suspenso' | 'Concluido' | 'Em Risco';
 export type Methodology = 'Agile' | 'Waterfall' | 'Hybrid';
@@ -131,3 +138,41 @@ export type ProjectContext = {
   metricas: any[];
   atualizadoEm: string;
 };
+
+export type Interaction = {
+  id: string;
+  input: string;
+  agente: string;
+  output: string;
+  data: string;
+  etapa?: string;
+};
+
+export type ProjectProfile = {
+  id: string;
+  nome: string;
+  contexto: {
+    objetivo: string;
+    escopo: string;
+    stakeholders: string[];
+  };
+  historico: Interaction[];
+  etapa?: string;
+  ultimaAcao?: string;
+  execucoes?: Execution[];
+};
+
+export type Execution = {
+  tipo: 'TECH';
+  resumo: string;
+  data: string;
+};
+
+export type AgentType =
+  | 'PM_AI'
+  | 'BPMN'
+  | 'RISK'
+  | 'UI'
+  | 'COMMS'
+  | 'DELIVERY'
+  | 'TECH';

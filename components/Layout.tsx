@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -21,11 +21,11 @@ const SidebarItem = ({ to, icon: Icon, label, active, collapsed }: any) => (
     to={to}
     className={`flex items-center p-3 rounded-xl transition-all group mb-1 ${
       active 
-        ? 'bg-emerald-500/10 text-emerald-400 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.2)]' 
+        ? 'bg-brand-500/10 text-brand-400 shadow-[inset_0_0_0_1px_rgba(242,101,34,0.2)]' 
         : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
     }`}
   >
-    <Icon size={20} className={active ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'} />
+    <Icon size={20} className={active ? 'text-brand-400' : 'text-slate-500 group-hover:text-slate-300'} />
     {!collapsed && <span className="ml-3 font-bold text-[11px] uppercase tracking-widest leading-none">{label}</span>}
   </Link>
 );
@@ -50,9 +50,7 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const currentPath = location.pathname;
-  const logoUrl = theme === 'light' 
-    ? 'https://i.imgur.com/JU8v63w.png' 
-    : 'https://i.imgur.com/UVeg7Nr.png';
+  const logoUrl = 'https://i.imgur.com/GUOMwkI.png';
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-200'}`}>
@@ -76,10 +74,10 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-20 px-6 border-b border-slate-800/10">
             {!collapsed ? (
               <div className="flex items-center gap-3">
-                <img src={logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
+                <img src={logoUrl} alt="Logo" className="h-10 w-auto object-contain drop-shadow-lg" />
                 <div className="flex flex-col">
-                  <span className={`text-[11px] font-black leading-tight tracking-tighter uppercase ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>PM COMMAND</span>
-                  <span className="text-[9px] font-bold text-emerald-500 tracking-[0.2em] uppercase opacity-80">CENTER</span>
+                  <span className={`text-[11px] font-black leading-tight tracking-[0.08em] uppercase ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>PM COMMAND</span>
+                  <span className="text-[9px] font-bold text-brand-500 tracking-[0.3em] uppercase opacity-90">CENTER</span>
                 </div>
               </div>
             ) : (
@@ -110,7 +108,7 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
               className={`w-full flex items-center justify-center gap-2 rounded-xl border py-2.5 px-3 transition-all active:scale-95 ${
                 theme === 'light'
                   ? 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-emerald-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-brand-400'
               }`}
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -122,7 +120,7 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
             </button>
             <button 
               onClick={() => navigate('/projects')}
-              className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 ${collapsed ? 'px-0' : 'px-4'}`}
+              className={`w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-brand-600/20 active:scale-95 ${collapsed ? 'px-0' : 'px-4'}`}
             >
               <PlusCircle size={18} />
               {!collapsed && <span className="text-[10px] uppercase tracking-widest font-black">Novo Projeto</span>}
@@ -144,23 +142,23 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
                 SISTEMA OPERACIONAL
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(242,101,34,0.7)]"></div>
                 <span className={`text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Status: Online</span>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <button onClick={toggleTheme} className={`p-2.5 rounded-xl border transition-all active:scale-90 ${theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-emerald-400'}`}>
+            <button onClick={toggleTheme} className={`p-2.5 rounded-xl border transition-all active:scale-90 ${theme === 'light' ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-brand-400'}`}>
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
-            <div className={`hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl border ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
+            <div className={`hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl border ${theme === 'light' ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800 border-slate-700 shadow-inner'}`}>
               <div className="text-right">
                 <p className="text-[8px] text-slate-500 font-black uppercase leading-none mb-0.5 tracking-tighter">PROJECT MANAGER</p>
                 <p className={`text-[10px] font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>ADMIN USER</p>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-black text-[10px] shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center text-white font-black text-[10px] shadow-lg">
                 PM
               </div>
             </div>
@@ -177,3 +175,6 @@ export const MainLayout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   );
 };
+
+
+

@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { useProjectsStore } from '../store/useProjectsStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -18,7 +18,7 @@ const StatCard = ({ icon: Icon, label, value, colorClass, theme }: any) => (
   <div className={`border p-6 rounded-[24px] shadow-sm transition-all ${
     theme === 'light' 
       ? 'bg-white border-slate-200 hover:shadow-lg shadow-slate-200/50' 
-      : 'bg-slate-900 border-slate-800 hover:shadow-emerald-500/5'
+      : 'bg-slate-900 border-slate-800 hover:shadow-brand-500/5'
   }`}>
     <div className="flex items-center justify-between mb-4">
       <div className={`p-3 rounded-xl ${colorClass}`}>
@@ -49,7 +49,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <button 
           onClick={() => navigate('/projects')}
-          className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
+          className="flex items-center gap-3 bg-brand-600 hover:bg-brand-500 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-brand-600/20 active:scale-95"
         >
           <Plus size={18} strokeWidth={3} />
           Nova Iniciativa
@@ -69,7 +69,7 @@ export const Dashboard: React.FC = () => {
           icon={Clock} 
           label="Workspaces Ativos" 
           value={activeProjects} 
-          colorClass="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+          colorClass="bg-brand-500/10 text-brand-500 border border-brand-500/20" 
           theme={theme}
         />
         <StatCard 
@@ -92,9 +92,9 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className={`text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-              <TrendingUp size={16} className="text-emerald-500" /> Operações Recentes
+              <TrendingUp size={16} className="text-brand-500" /> Operações Recentes
             </h3>
-            <Link to="/projects" className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest flex items-center gap-1 transition-all">
+            <Link to="/projects" className="text-[10px] font-black text-brand-600 hover:text-brand-700 uppercase tracking-widest flex items-center gap-1 transition-all">
               Ver Tudo <ChevronRight size={12} />
             </Link>
           </div>
@@ -105,7 +105,7 @@ export const Dashboard: React.FC = () => {
                 key={p.id}
                 to={`/projects/${p.id}`}
                 className={`block border p-5 rounded-[28px] transition-all group relative overflow-hidden shadow-sm ${
-                  theme === 'light' ? 'bg-white border-slate-200 hover:border-emerald-500' : 'bg-slate-900 border-slate-800 hover:border-emerald-500/30'
+                  theme === 'light' ? 'bg-white border-slate-200 hover:border-brand-500' : 'bg-slate-900 border-slate-800 hover:border-brand-500/30'
                 }`}
               >
                 <div className="flex items-center justify-between relative z-10">
@@ -113,12 +113,12 @@ export const Dashboard: React.FC = () => {
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner border ${
                       p.status === 'Em Risco' 
                         ? 'bg-red-500/10 text-red-500 border-red-500/20' 
-                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                        : 'bg-brand-500/10 text-brand-500 border-brand-500/20'
                     }`}>
                       <Briefcase size={22} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className={`font-black group-hover:text-emerald-500 transition-colors text-lg tracking-tight uppercase ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{p.name}</h4>
+                      <h4 className={`font-black group-hover:text-brand-500 transition-colors text-lg tracking-tight uppercase ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{p.name}</h4>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">{p.methodology} • {p.startDate}</p>
                     </div>
                   </div>
@@ -128,7 +128,7 @@ export const Dashboard: React.FC = () => {
                       <p className={`text-sm font-black leading-none ${theme === 'light' ? 'text-slate-700' : 'text-slate-200'}`}>{p.budget || '--'}</p>
                     </div>
                     <span className={`text-[9px] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest border transition-all ${
-                      p.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      p.status === 'Ativo' ? 'bg-brand-500/10 text-brand-500 border-brand-500/20' :
                       p.status === 'Em Risco' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                       'bg-slate-200 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                     }`}>
@@ -160,7 +160,7 @@ export const Dashboard: React.FC = () => {
                   theme === 'light' ? 'bg-slate-50 border-slate-200 hover:bg-white hover:shadow-md' : 'bg-slate-950/50 border-slate-800 hover:bg-slate-800/80'
                 }`}>
                   <span className={`text-[10px] font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>{agent}</span>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                  <div className="w-2 h-2 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(242,101,34,0.55)]"></div>
                 </div>
               ))}
             </div>
@@ -170,3 +170,5 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+
