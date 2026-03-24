@@ -25,6 +25,7 @@ import { SuggestionCard } from '../components/SuggestionCard';
 import { TechOutputViewer } from '../components/TechOutputViewer';
 import { AgentId, ProjectContext, ProjectProfile } from '../types';
 import { getContext, updateContext, getHistory } from '../services/contextService';
+import { generateDocumentHTML } from '../services/documentService';
 import { ensureProject, getProject, updateProject } from '../services/projectService';
 import { AGENTS_MAP } from '../constants';
 import ReactMarkdown from 'react-markdown';
@@ -174,11 +175,23 @@ export const ProjectWorkspace: React.FC = () => {
     if (activeTab === 'processes') {
       return sanitizeArtifactContent();
     }
-    if (activeTab === 'planning' || activeTab === 'overview') {
-      const body = escapeHtml(lastAssistantDoc.content);
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${artifactInfo.filename}</title></head><body><pre style="font-family:Calibri, Arial, sans-serif; font-size:11pt; white-space:pre-wrap; line-height:1.4;">${body}</pre></body></html>`;
-    }
-    return lastAssistantDoc.content;
+
+    const base = escapeHtml(lastAssistantDoc.content).replace(/\n/g, '<br/>');
+    const sections = [
+      { title: 'Título', content: project?.name || 'Relatório' },
+      { title: 'Resumo Executivo', content: base },
+      { title: 'Contexto', content: base },
+      { title: 'Backlog (Tabela)', content: base },
+      { title: 'Workflow / Processo', content: base },
+      { title: 'Métricas', content: base },
+      { title: 'Próximos Passos', content: base },
+    ];
+
+    return generateDocumentHTML({
+      title: docPanelTitle,
+      projectName: project?.name,
+      sections,
+    });
   };
 
   const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
@@ -235,13 +248,13 @@ export const ProjectWorkspace: React.FC = () => {
       case 'processes':
         return { filename: `${baseName}-processo.bpmn`, mime: 'application/xml' };
       case 'planning':
-        return { filename: `${baseName}-backlog.doc`, mime: 'application/msword' };
+        return { filename: `${baseName}-backlog.html`, mime: 'text/html' };
       case 'risks':
         return { filename: `${baseName}-riscos.md`, mime: 'text/markdown' };
       case 'design':
         return { filename: `${baseName}-design.md`, mime: 'text/markdown' };
       default: // overview/PM AI outputs
-        return { filename: `${baseName}-artefato.doc`, mime: 'application/msword' };
+        return { filename: `${baseName}-artefato.html`, mime: 'text/html' };
     }
   }, [activeTab, project]);
 
