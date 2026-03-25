@@ -25,11 +25,15 @@ const MODELS_BY_PROVIDER = {
     { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
     { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
     { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Image' },
+    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (exp)' },
   ],
   'openai': [
+    { id: 'gpt-4.1', name: 'GPT-4.1' },
+    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini' },
     { id: 'gpt-4o', name: 'GPT-4o (Omni)' },
     { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
     { id: 'o1-preview', name: 'o1 Preview' },
+    { id: 'gpt-image-1', name: 'GPT-Image-1 (Imagens)' },
   ],
   'anthropic': [
     { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
