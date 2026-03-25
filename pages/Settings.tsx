@@ -90,8 +90,13 @@ export const Settings: React.FC = () => {
 
       <section className="space-y-6">
         {AGENTS_DEFINITIONS.map((agent) => {
-          const settings = settingsByAgent[agent.id];
-          const providerModels = MODELS_BY_PROVIDER[settings.provider || 'google-ai-studio'];
+          const settings = settingsByAgent[agent.id] || {
+            provider: 'google-ai-studio',
+            model: 'gemini-3-pro-preview',
+            temperature: 0.7,
+            apiKey: '',
+          };
+          const providerModels = MODELS_BY_PROVIDER[settings.provider as keyof typeof MODELS_BY_PROVIDER] || MODELS_BY_PROVIDER['google-ai-studio'];
           const hasManualKey = !!settings.apiKey;
 
           return (
