@@ -12,6 +12,7 @@ import { AGENTS_MAP } from '../constants';
 import { useNavigate } from 'react-router-dom';
 import { getContext, validateContext } from '../services/contextService';
 import { saveInteraction, saveExecution } from '../services/projectService';
+import { generateUiImage } from '../services/imageService';
 import * as XLSX from 'xlsx';
 
 interface ChatPanelProps {
@@ -40,6 +41,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId, projec
   const [isUploading, setIsUploading] = useState(false);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [orchestrationSuggestion, setOrchestrationSuggestion] = useState<OrchestrationSuggestion | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
@@ -144,6 +147,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId, projec
             <button onClick={() => navigate('/settings')} className="mt-3 text-[10px] font-black uppercase text-blue-500 underline">Ajustar Credenciais</button>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderGeneratedImage = () => {
+    if (!generatedImageUrl) return null;
+    return (
+      <div className="mx-6 mb-4 border rounded-2xl p-3 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-brand-500">Mock visual (OpenAI)</span>
+          <a href={generatedImageUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase text-blue-500 underline">Abrir</a>
+        </div>
+        <img src={generatedImageUrl} alt="Mock UI" className="w-full rounded-xl border border-slate-200 dark:border-slate-700" />
       </div>
     );
   };
@@ -513,7 +529,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId, projec
             <span className="text-[10px] font-black uppercase text-brand-500 tracking-widest">Processando Inteligência...</span>
           </div>
         )}
+        {isGeneratingImage && (
+          <div className="flex items-center gap-3 animate-pulse p-4">
+            <div className="w-8 h-8 rounded-xl bg-brand-500/20 flex items-center justify-center">
+              <RefreshCw size={14} className="text-brand-500 animate-spin" />
+            </div>
+            <span className="text-[10px] font-black uppercase text-brand-500 tracking-widest">Gerando imagem...</span>
+          </div>
+        )}
         {renderError()}
+        {renderGeneratedImage()}
       </div>
 
       <div className={`p-6 border-t ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/40 border-slate-700/50'}`}>
@@ -540,6 +565,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ agentId, projectId, projec
             }`}
           />
           <div className="flex flex-col gap-2">
+            {agentId === 'uiScreensDesigner' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!lastAssistantMessage) {
+                    setErrorType('Gere uma descrição da tela antes de pedir imagem.');
+                    return;
+                  }
+                  if (settings?.provider !== 'openai') {
+                    setErrorType('A geração de imagem exige provedor OpenAI configurado.');
+                    return;
+                  }
+                  try {
+                    setIsGeneratingImage(true);
+                    const img = await generateUiImage(lastAssistantMessage.content, settings);
+                    setGeneratedImageUrl(img.url);
+                  } catch (err: any) {
+                    setErrorType(err.message || 'Falha ao gerar imagem.');
+                  } finally {
+                    setIsGeneratingImage(false);
+                  }
+                }}
+                disabled={isGeneratingImage || isLoading}
+                className="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-400 hover:text-brand-500 disabled:opacity-50"
+              >
+                {isGeneratingImage ? 'Gerando mock...' : 'Gerar mock visual'}
+              </button>
+            )}
             <input
               type="file"
               ref={fileInputRef}
