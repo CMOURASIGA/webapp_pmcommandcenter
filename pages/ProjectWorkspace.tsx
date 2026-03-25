@@ -71,6 +71,7 @@ export const ProjectWorkspace: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
   
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [showContextDetails, setShowContextDetails] = useState(false);
   const clearChat = useChatStore((state) => state.clearChat);
   const projects = useProjectsStore((state) => state.projects);
   const project = useMemo(() => projects.find(p => p.id === id), [projects, id]);
@@ -254,6 +255,7 @@ export const ProjectWorkspace: React.FC = () => {
     const ultimaAcao = projectProfile?.ultimaAcao || 'Nenhuma ação registrada';
     const etapaAtual = projectProfile?.etapa || stageLabel;
     const historicoTotal = projectProfile?.historico?.length || 0;
+    const resumoCurto = (ultimaAcao || '').split('\n').join(' ').slice(0, 220);
 
     return (
       <div className={`flex flex-wrap items-center gap-3 border p-4 rounded-2xl shadow ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
@@ -264,6 +266,32 @@ export const ProjectWorkspace: React.FC = () => {
           <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Última ação: {ultimaAcao}</span>
           <span className="px-3 py-1 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">Interações: {historicoTotal}</span>
         </div>
+        {!showContextDetails && (
+          <div className="w-full">
+            <p className="text-xs text-slate-500 mt-2 line-clamp-2">{resumoCurto}</p>
+            <button
+              onClick={() => setShowContextDetails(true)}
+              className="mt-1 text-[10px] font-black uppercase tracking-widest text-brand-600 hover:text-brand-500"
+            >
+              Ver contexto completo
+            </button>
+          </div>
+        )}
+
+        {showContextDetails && (
+          <div className="w-full border rounded-xl p-3 bg-slate-50 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 max-h-56 overflow-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-brand-600">Contexto detalhado</span>
+              <button
+                onClick={() => setShowContextDetails(false)}
+                className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+              >
+                Fechar
+              </button>
+            </div>
+            <p className="whitespace-pre-wrap leading-relaxed">{ultimaAcao}</p>
+          </div>
+        )}
       </div>
     );
   };
