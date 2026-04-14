@@ -8,15 +8,52 @@ export type AgentId =
   | 'meetingDocsCopilot'
   | 'techArchitect';
 
+export type CoreAgentId =
+  | 'storyboardIntelligenceArchitect'
+  | 'pmAiPartner'
+  | 'bpmnMasterArchitect'
+  | 'statusReportExecutiveArchitect';
+
+export type AgentScope = 'CONTEXT' | 'SAI' | 'PM' | 'BPMN' | 'STATUS' | 'OTHER';
+
 export type OrchestrationSuggestion = {
   nextAgent: 'BPMN' | 'RISK' | 'UI' | 'COMMS' | 'DELIVERY' | 'TECH';
   reason: string;
   confidence: 'baixa' | 'media' | 'alta';
 };
 
-export type ProjectStatus = 'Ativo' | 'Suspenso' | 'Concluido' | 'Em Risco';
+export type ProjectStatus = 'Ativo' | 'Suspenso' | 'Concluido' | 'Em Risco' | 'Planejamento';
 export type Methodology = 'Agile' | 'Waterfall' | 'Hybrid';
 export type MaturityLevel = 'exploratorio' | 'estruturado' | 'execucao' | 'otimizacao';
+export type ProjectHealth = 'Saudavel' | 'Atencao' | 'Critico';
+
+export interface DriveSubfolderRefs {
+  contexto: string;
+  sai: string;
+  pm: string;
+  bpmn: string;
+  status: string;
+  gerais: string;
+}
+
+export interface DriveFolderRef {
+  rootId: string;
+  rootUrl: string;
+  controlFolderId: string;
+  controlFolderUrl: string;
+  clientFolderId: string;
+  clientFolderUrl: string;
+  projectFolderId: string;
+  projectFolderUrl: string;
+  subfolders: DriveSubfolderRefs;
+}
+
+export interface ShareAccess {
+  id: string;
+  email: string;
+  role: 'OWNER' | 'EDITOR' | 'VIEWER';
+  grantedAt: string;
+}
 
 export interface Project {
   id: string;
@@ -27,6 +64,118 @@ export interface Project {
   startDate: string;
   endDate?: string;
   budget?: string;
+  clientId?: string;
+  clientName?: string;
+  description?: string;
+  responsible?: string;
+  stakeholders?: string[];
+  nextStep?: string;
+  phase?: string;
+  health?: ProjectHealth;
+  lastUpdate?: string;
+  folderRef?: DriveFolderRef;
+  sharedWith?: ShareAccess[];
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  description?: string;
+  owner?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ArtifactStatus = 'DRAFT' | 'ACTIVE' | 'FINAL' | 'ARCHIVED';
+export type ArtifactFormat = 'google-doc' | 'markdown' | 'html' | 'image' | 'bpmn' | 'link' | 'text';
+
+export interface ArtifactVersion {
+  version: number;
+  content: string;
+  note?: string;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface Artifact {
+  id: string;
+  projectId: string;
+  clientId?: string;
+  name: string;
+  type: ArtifactType;
+  scope: AgentScope;
+  agentId?: CoreAgentId;
+  format: ArtifactFormat;
+  link?: string;
+  status: ArtifactStatus;
+  currentVersion: number;
+  versions: ArtifactVersion[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  isCurrent: boolean;
+  relatedArtifactId?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface HistoryEvent {
+  id: string;
+  projectId: string;
+  actor: string;
+  type:
+    | 'PROJECT_CREATED'
+    | 'PROJECT_UPDATED'
+    | 'PROJECT_DELETED'
+    | 'CLIENT_CREATED'
+    | 'CLIENT_UPDATED'
+    | 'CLIENT_DELETED'
+    | 'ARTIFACT_CREATED'
+    | 'ARTIFACT_UPDATED'
+    | 'ARTIFACT_VERSIONED'
+    | 'ARTIFACT_DELETED'
+    | 'AGENT_OPENED'
+    | 'CONTEXT_UPDATED'
+    | 'SHARE_GRANTED'
+    | 'SHARE_REMOVED';
+  summary: string;
+  agentId?: CoreAgentId;
+  createdAt: string;
+}
+
+export interface AgentLinkConfig {
+  storyboardIntelligenceArchitect: string;
+  pmAiPartner: string;
+  bpmnMasterArchitect: string;
+  statusReportExecutiveArchitect: string;
+}
+
+export interface WorkspaceFlags {
+  enableExternalAgentLinks: boolean;
+  enableInternalHtmlPreview: boolean;
+  enableGoogleDocPreview: boolean;
+  enableBpmnImagePreview: boolean;
+}
+
+export interface WorkspaceSettings {
+  appName: string;
+  appEnv: string;
+  webappBaseUrl: string;
+  googleClientId: string;
+  googleApiKey: string;
+  driveRootFolderName: string;
+  projectsMasterSheetName: string;
+  brandLogoUrl: string;
+  agentLinks: AgentLinkConfig;
+  flags: WorkspaceFlags;
+}
+
+export interface AuthUser {
+  email: string;
+  name: string;
+  picture?: string;
+  provider: 'google' | 'local';
 }
 
 export interface Risk {
@@ -184,4 +333,10 @@ export type ArtifactType =
   | 'TECH_ARCH'
   | 'METRICS'
   | 'COMMUNICATION'
-  | 'BPMN';
+  | 'BPMN'
+  | 'CONTEXT'
+  | 'STORYBOARD'
+  | 'PM_PLAN'
+  | 'STATUS_MD'
+  | 'STATUS_HTML'
+  | 'PRESENTATION_HTML';

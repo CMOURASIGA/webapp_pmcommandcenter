@@ -1,590 +1,639 @@
-﻿
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useProjectsStore } from '../store/useProjectsStore';
-import { useChatStore } from '../store/useChatStore';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useThemeStore } from '../store/useThemeStore';
-import { 
-  Layout, 
-  Workflow, 
-  AlertTriangle, 
-  LayoutTemplate, 
-  MessageSquare, 
-  BarChart3, 
-  FileText,
-  ChevronLeft,
-  Target,
-  Box,
-  Eye,
-  RefreshCw,
-  Download,
-  Paperclip
-} from 'lucide-react';
-import { ChatPanel } from '../components/ChatPanel';
-import { SuggestionCard } from '../components/SuggestionCard';
-import { TechOutputViewer } from '../components/TechOutputViewer';
-import { AgentId, ProjectContext, ProjectProfile } from '../types';
-import { getContext, updateContext, getHistory } from '../services/contextService';
-import { renderDocumentForAgent } from '../services/documentService';
-import { ensureProject, getProject, updateProject } from '../services/projectService';
-import { AGENTS_MAP } from '../constants';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useAuthStore } from '../store/useAuthStore';
+import { AgentCard } from '../components/AgentCard';
+import { ArtifactList } from '../components/ArtifactList';
+import { BpmnPreviewPanel } from '../components/BpmnPreviewPanel';
+import { ContextPanel } from '../components/ContextPanel';
+import { HtmlPreviewPanel } from '../components/HtmlPreviewPanel';
+import { ProjectForm } from '../components/ProjectForm';
+import { ProjectHeader } from '../components/ProjectHeader';
+import { QuickActionsBar } from '../components/QuickActionsBar';
+import { ShareProjectModal } from '../components/ShareProjectModal';
+import { Artifact, CoreAgentId, Project } from '../types';
+import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components/ArtifactEditorDrawer';
 
-type TabId = 'overview' | 'planning' | 'processes' | 'risks' | 'design' | 'comms' | 'metrics' | 'meetings';
+const tabs = [
+  { id: 'overview', label: 'Visao Geral' },
+  { id: 'context', label: 'Contexto' },
+  { id: 'agents', label: 'Agentes' },
+  { id: 'artifacts', label: 'Artefatos' },
+  { id: 'history', label: 'Historico' },
+  { id: 'sharing', label: 'Compartilhamento' },
+] as const;
 
-interface TabConfig {
-  id: TabId;
-  label: string;
-  icon: any;
-  agentId: AgentId;
+type TabId = (typeof tabs)[number]['id'];
+
+const AGENTS_META: Array<{
+  id: CoreAgentId;
+  name: string;
   description: string;
-}
-
-const TABS: TabConfig[] = [
-  { id: 'overview', label: AGENTS_MAP.pmAiPartner.displayName, icon: Layout, description: 'Visão executiva.', agentId: 'pmAiPartner' },
-  { id: 'planning', label: AGENTS_MAP.pmAiPartner.displayName, icon: Target, description: 'Histórias INVEST.', agentId: 'pmAiPartner' },
-  { id: 'processes', label: AGENTS_MAP.bpmnMasterArchitect.displayName, icon: Workflow, description: 'Modelos compatíveis.', agentId: 'bpmnMasterArchitect' },
-  { id: 'risks', label: AGENTS_MAP.riskDecisionAnalyst.displayName, icon: AlertTriangle, description: 'Matriz de calor.', agentId: 'riskDecisionAnalyst' },
-  { id: 'design', label: AGENTS_MAP.uiScreensDesigner.displayName, icon: LayoutTemplate, description: 'UX/UI flows.', agentId: 'uiScreensDesigner' },
-  { id: 'comms', label: AGENTS_MAP.stakeholderCommsWriter.displayName, icon: MessageSquare, description: 'Updates semanais.', agentId: 'stakeholderCommsWriter' },
-  { id: 'metrics', label: AGENTS_MAP.metricsReportingArchitect.displayName, icon: BarChart3, description: 'KPIs e saúde.', agentId: 'metricsReportingArchitect' },
-  { id: 'meetings', label: AGENTS_MAP.meetingDocsCopilot.displayName, icon: FileText, description: 'Decisões e ações.', agentId: 'meetingDocsCopilot' },
+  whenToUse: string;
+  inputType: string;
+  outputType: string;
+  scope: Artifact['scope'];
+}> = [
+  {
+    id: 'storyboardIntelligenceArchitect',
+    name: 'Storyboard Intelligence Architect',
+    description: 'Organiza contexto bruto e consolida a base do projeto.',
+    whenToUse: 'Inicio do projeto e alinhamento de entendimento.',
+    inputType: 'Notas, entrevistas, textos e anexos.',
+    outputType: 'Storyboard inicial/validado e leitura inicial.',
+    scope: 'SAI',
+  },
+  {
+    id: 'pmAiPartner',
+    name: 'PM AI Partner',
+    description: 'Estrutura plano de trabalho, backlog e estrategia de execucao.',
+    whenToUse: 'Planejamento e acompanhamento do projeto.',
+    inputType: 'Contexto consolidado e objetivos.',
+    outputType: 'Diagnostico, plano, backlog e leitura executiva.',
+    scope: 'PM',
+  },
+  {
+    id: 'bpmnMasterArchitect',
+    name: 'BPMN Master Architect',
+    description: 'Modela processo AS IS/TO BE e gera artefatos BPMN.',
+    whenToUse: 'Mapeamento de processo, automacao e analise de gargalo.',
+    inputType: 'Fluxo atual, regras e excecoes.',
+    outputType: '.bpmn, imagem do processo e analise.',
+    scope: 'BPMN',
+  },
+  {
+    id: 'statusReportExecutiveArchitect',
+    name: 'Status Report Executive Architect',
+    description: 'Gera status report executivo e dashboard HTML.',
+    whenToUse: 'Ritos periodicos de status e comunicacao com lideranca.',
+    inputType: 'Andamento, riscos, metricas e proximos passos.',
+    outputType: 'Status markdown, dashboard HTML e apresentacao.',
+    scope: 'STATUS',
+  },
 ];
 
-const TAB_LABELS: Record<TabId, string> = {
-  overview: 'Visão Geral',
-  planning: 'Planejamento',
-  processes: 'Processos',
-  risks: 'Riscos',
-  design: 'Design',
-  comms: 'Comunicações',
-  metrics: 'Métricas',
-  meetings: 'Reuniões',
+const splitStakeholders = (raw: string) =>
+  raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+const formatProjectContext = (project: Project) => {
+  const lines = [
+    `Projeto: ${project.name}`,
+    `Cliente: ${project.clientName || '-'}`,
+    `Objetivo: ${project.objective}`,
+    `Descricao: ${project.description || '-'}`,
+    `Status: ${project.status}`,
+    `Fase: ${project.phase || '-'}`,
+    `Saude: ${project.health || '-'}`,
+    `Responsavel: ${project.responsible || '-'}`,
+    `Metodologia: ${project.methodology}`,
+    `Stakeholders: ${(project.stakeholders || []).join(', ') || '-'}`,
+    `Proximo passo: ${project.nextStep || '-'}`,
+  ];
+  return lines.join('\n');
 };
 
-const EMPTY_DOCS: any[] = [];
+const readArtifactContent = (artifact?: Artifact | null): string => {
+  if (!artifact) return '';
+  return artifact.versions.find((item) => item.version === artifact.currentVersion)?.content || '';
+};
 
 export const ProjectWorkspace: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
-  
+  const user = useAuthStore((state) => state.user);
+
+  const clients = useWorkspaceStore((state) => state.clients);
+  const projects = useWorkspaceStore((state) => state.projects);
+  const artifacts = useWorkspaceStore((state) => state.artifacts);
+  const history = useWorkspaceStore((state) => state.history);
+  const settings = useWorkspaceStore((state) => state.settings);
+
+  const updateProject = useWorkspaceStore((state) => state.updateProject);
+  const createArtifact = useWorkspaceStore((state) => state.createArtifact);
+  const updateArtifact = useWorkspaceStore((state) => state.updateArtifact);
+  const updateArtifactMeta = useWorkspaceStore((state) => state.updateArtifactMeta);
+  const deleteArtifact = useWorkspaceStore((state) => state.deleteArtifact);
+  const shareProject = useWorkspaceStore((state) => state.shareProject);
+  const removeProjectShare = useWorkspaceStore((state) => state.removeProjectShare);
+
+  const project = useMemo(() => projects.find((item) => item.id === id), [id, projects]);
+  const projectArtifacts = useMemo(() => artifacts.filter((item) => item.projectId === project?.id), [artifacts, project?.id]);
+  const projectHistory = useMemo(() => history.filter((item) => item.projectId === project?.id), [history, project?.id]);
+
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [showContextDetails, setShowContextDetails] = useState(false);
-  const clearChat = useChatStore((state) => state.clearChat);
-  const projects = useProjectsStore((state) => state.projects);
-  const project = useMemo(() => projects.find(p => p.id === id), [projects, id]);
-  const [projectContext, setProjectContext] = useState<ProjectContext>(() => getContext(id));
-  const [valorDescricao, setValorDescricao] = useState(projectContext.valor.descricao);
-  const [valorStakeholders, setValorStakeholders] = useState(projectContext.valor.stakeholders.join(', '));
-  const [valorMetricas, setValorMetricas] = useState(projectContext.valor.metricas.join(', '));
-  const [valorPrazo, setValorPrazo] = useState(projectContext.valor.prazo);
-  const [projectProfile, setProjectProfile] = useState<ProjectProfile | null>(null);
+  const [artifactScopeFilter, setArtifactScopeFilter] = useState<'ALL' | Artifact['scope']>('ALL');
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+  const [editingProject, setEditingProject] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [artifactDrawerOpen, setArtifactDrawerOpen] = useState(false);
+  const [artifactDrawerMode, setArtifactDrawerMode] = useState<'create' | 'edit' | 'version'>('create');
+  const [drawerTargetArtifact, setDrawerTargetArtifact] = useState<Artifact | null>(null);
 
-  const lastContextIdRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (lastContextIdRef.current === id) return;
-    lastContextIdRef.current = id;
-    const next = getContext(id);
-    setProjectContext(next);
-  }, [id]);
+  if (!project) {
+    return (
+      <div className={`rounded-2xl border p-6 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+        Projeto nao encontrado.
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (!project) return;
-    const seeded = ensureProject(project.id, project.name, { objetivo: project.objective, escopo: project.methodology, stakeholders: [] });
-    setProjectProfile(seeded);
-  }, [project]);
+  const actor = user?.email || 'local.admin@7c.local';
+  const contextText = formatProjectContext(project);
 
-  const activeAgent = useMemo(() => 
-    TABS.find(t => t.id === activeTab) || TABS[0], 
-    [activeTab]
-  );
-
-  const stageLabel = useMemo(() => TAB_LABELS[activeTab] || 'Operação', [activeTab]);
-
-  const chatId = useMemo(() => 
-    `${id}-${activeTab === 'overview' ? 'pmAiPartner' : activeAgent.agentId}`,
-    [id, activeTab, activeAgent]
-  );
+  const filteredArtifacts = artifactScopeFilter === 'ALL'
+    ? projectArtifacts
+    : projectArtifacts.filter((artifact) => artifact.scope === artifactScopeFilter);
 
   useEffect(() => {
-    if (!project) return;
-    const updated = updateProject(project.id, { etapa: stageLabel });
-    setProjectProfile(updated || getProject(project.id));
-  }, [project, stageLabel]);
+    if (!selectedArtifact) return;
+    const latest = projectArtifacts.find((item) => item.id === selectedArtifact.id) || null;
+    setSelectedArtifact(latest);
+  }, [projectArtifacts, selectedArtifact?.id]);
 
-  const docMessages = useChatStore((state) => state.chats[chatId] || EMPTY_DOCS);
-  const techChatId = `${id}-techArchitect`;
-  const techMessages = useChatStore((state) => state.chats[techChatId] || EMPTY_DOCS);
-  const techLast = useMemo(() => [...techMessages].reverse().find((m) => m.role === 'assistant') || null, [techMessages]);
-  const lastAssistantDoc = useMemo(() => [...docMessages].reverse().find((m) => m.role === 'assistant') || null, [docMessages]);
-  const lastAttachments = useMemo(
-    () =>
-      docMessages
-        .filter((m) => m.role === 'user' && m.content.startsWith('Conteudo do anexo'))
-        .map((m) => {
-          const firstLine = m.content.split('\n')[0] || '';
-          return firstLine.replace('Conteudo do anexo (', '').replace('):', '') || 'Anexo';
-        }),
-    [docMessages]
-  );
+  const copyContext = async () => {
+    await navigator.clipboard.writeText(contextText);
+    alert('Contexto copiado para area de transferencia.');
+  };
 
-  // Fun��o para limpar todos os chats do projeto de uma vez
-  const handleGlobalReset = () => {
-    if (confirm("Deseja limpar o hist�rico de TODOS os especialistas deste projeto? Isso economiza tokens e reinicia o contexto da IA para novas diretrizes.")) {
-      TABS.forEach(tab => {
-        const tid = `${id}-${tab.id === 'overview' ? 'pmAiPartner' : tab.agentId}`;
-        clearChat(tid);
+  const openAgent = (agentId: CoreAgentId) => {
+    const url = settings.agentLinks[agentId];
+    if (!url) {
+      alert('Link do agente nao configurado.');
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const openArtifactLink = (artifact: Artifact) => {
+    if (artifact.link) {
+      window.open(artifact.link, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    alert('Este icone abre o "Link externo" salvo no artefato. Edite o artefato para cadastrar uma URL.');
+  };
+
+  const resolveTypeFromScope = (scope: Artifact['scope']): Artifact['type'] => {
+    if (scope === 'BPMN') return 'BPMN';
+    if (scope === 'STATUS') return 'STATUS_MD';
+    if (scope === 'SAI') return 'STORYBOARD';
+    if (scope === 'CONTEXT') return 'CONTEXT';
+    return 'PM_PLAN';
+  };
+
+  const resolveAgentFromScope = (scope: Artifact['scope']) => {
+    if (scope === 'SAI') return 'storyboardIntelligenceArchitect';
+    if (scope === 'PM') return 'pmAiPartner';
+    if (scope === 'BPMN') return 'bpmnMasterArchitect';
+    if (scope === 'STATUS') return 'statusReportExecutiveArchitect';
+    return undefined;
+  };
+
+  const openCreateArtifactDrawer = (scope?: Artifact['scope']) => {
+    const fallbackScope = scope || (artifactScopeFilter === 'ALL' ? 'PM' : artifactScopeFilter);
+    setArtifactDrawerMode('create');
+    setDrawerTargetArtifact({
+      ...({
+        id: 'draft',
+        projectId: project.id,
+        name: '',
+        type: resolveTypeFromScope(fallbackScope),
+        scope: fallbackScope,
+        format: 'markdown',
+        status: 'DRAFT',
+        currentVersion: 1,
+        versions: [],
+        createdAt: new Date().toISOString(),
+        createdBy: actor,
+        updatedAt: new Date().toISOString(),
+        updatedBy: actor,
+        isCurrent: true,
+        agentId: resolveAgentFromScope(fallbackScope),
+      } as Artifact),
+    });
+    setArtifactDrawerOpen(true);
+  };
+
+  const openEditArtifactDrawer = (artifact: Artifact) => {
+    setArtifactDrawerMode('edit');
+    setDrawerTargetArtifact(artifact);
+    setArtifactDrawerOpen(true);
+  };
+
+  const openVersionArtifactDrawer = (artifact: Artifact) => {
+    setArtifactDrawerMode('version');
+    setDrawerTargetArtifact(artifact);
+    setArtifactDrawerOpen(true);
+  };
+
+  const handleDeleteArtifact = (artifact: Artifact) => {
+    const approved = window.confirm(`Excluir artefato "${artifact.name}"?`);
+    if (!approved) return;
+
+    const removed = deleteArtifact(artifact.id, actor);
+    if (!removed) {
+      alert('Nao foi possivel excluir o artefato.');
+      return;
+    }
+
+    if (selectedArtifact?.id === artifact.id) {
+      setSelectedArtifact(null);
+    }
+  };
+
+  const submitArtifactFromDrawer = (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
+    if (artifactDrawerMode === 'create') {
+      const created = createArtifact({
+        projectId: project.id,
+        name: values.name,
+        type: values.type,
+        scope: values.scope,
+        format: values.format,
+        content: values.content,
+        createdBy: actor,
+        status: values.status,
+        agentId: values.agentId,
+        link: values.link || undefined,
+        note: values.note || 'Criado via drawer',
       });
-      alert("Sistema de IA reiniciado. Contexto limpo.");
-    }
-  };
-
-  const extractArtifactContent = () => {
-    if (!lastAssistantDoc) return '';
-    if (activeTab === 'processes') {
-      const codeMatch = lastAssistantDoc.content.match(/```(?:xml)?\s*(<\?xml[\s\S]*?<\/definitions>)[\s\S]*?```/i);
-      if (codeMatch?.[1]) return codeMatch[1].trim();
-      const xmlStart = lastAssistantDoc.content.indexOf('<?xml');
-      if (xmlStart !== -1) return lastAssistantDoc.content.slice(xmlStart).trim();
-      const defsStart = lastAssistantDoc.content.indexOf('<definitions');
-      if (defsStart !== -1) return lastAssistantDoc.content.slice(defsStart).trim();
-    }
-    return lastAssistantDoc.content;
-  };
-
-  const sanitizeArtifactContent = () => {
-    const raw = extractArtifactContent().trim();
-    const closingTag = '</bpmn:definitions>';
-    const closingIndex = raw.toLowerCase().lastIndexOf(closingTag.toLowerCase());
-    if (closingIndex !== -1) {
-      const sliced = raw.slice(0, closingIndex + closingTag.length).trim();
-      return sliced.endsWith('>') ? sliced : `${sliced}>`;
-    }
-    return raw;
-  };
-
-  const escapeHtml = (value: string) =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-  const buildDocumentContent = () => {
-    if (!lastAssistantDoc) return '';
-    if (activeTab === 'processes') {
-      return sanitizeArtifactContent();
+      setSelectedArtifact(created);
+      setArtifactScopeFilter(values.scope);
+      setActiveTab('artifacts');
+      setArtifactDrawerOpen(false);
+      return;
     }
 
-    return renderDocumentForAgent(activeAgent.agentId, lastAssistantDoc.content, docPanelTitle, project?.name);
-  };
+    if (!drawerTargetArtifact) return;
 
-  const hasStarted = useChatStore((state) => (state.chats[chatId]?.length || 0) > 0);
+    const beforeContent = readArtifactContent(drawerTargetArtifact);
+    const metaUpdated = updateArtifactMeta(drawerTargetArtifact.id, {
+      name: values.name,
+      type: values.type,
+      scope: values.scope,
+      format: values.format,
+      status: values.status,
+      link: values.link || undefined,
+      agentId: values.agentId,
+      updatedBy: actor,
+    });
 
-  const metrics = useMemo(() => {
-    if (!project) return null;
-    const parseDate = (str: string) => {
-      const [d, m, y] = str.split('/').map(Number);
-      return new Date(y, m - 1, d);
-    };
-    const now = new Date();
-    const start = parseDate(project.startDate);
-    const end = project.endDate ? parseDate(project.endDate) : null;
-    let timeProgress = 0;
-    let healthStatus = 'Em Planejamento';
-    let healthColor = 'text-blue-600';
+    if (!metaUpdated) {
+      alert('Nao foi possivel atualizar o artefato.');
+      return;
+    }
 
-    if (end) {
-      const totalDuration = end.getTime() - start.getTime();
-      const elapsed = now.getTime() - start.getTime();
-      timeProgress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
-      if (timeProgress > 90 && !hasStarted) { healthStatus = 'Atrasado'; healthColor = 'text-red-600'; }
-      else if (timeProgress > 50 && !hasStarted) { healthStatus = 'Aten��o'; healthColor = 'text-amber-600'; }
-      else { healthStatus = 'Em Dia'; healthColor = 'text-brand-600'; }
+    if (artifactDrawerMode === 'version') {
+      const updated = updateArtifact(drawerTargetArtifact.id, {
+        content: values.content,
+        updatedBy: actor,
+        strategy: 'new-version',
+        note: values.note || 'Nova versao criada via drawer',
+        status: values.status,
+        link: values.link || undefined,
+      });
+      if (updated) setSelectedArtifact(updated);
+      setArtifactDrawerOpen(false);
+      return;
+    }
+
+    if (beforeContent !== values.content) {
+      const updated = updateArtifact(drawerTargetArtifact.id, {
+        content: values.content,
+        updatedBy: actor,
+        strategy: 'overwrite',
+        note: values.note || 'Edicao via drawer',
+        status: values.status,
+        link: values.link || undefined,
+      });
+      if (updated) setSelectedArtifact(updated);
     } else {
-      timeProgress = hasStarted ? 10 : 0;
-      healthStatus = hasStarted ? 'Em Execu��o' : 'In�cio';
+      setSelectedArtifact(metaUpdated);
     }
-    return { timeProgress, healthStatus, healthColor };
-  }, [project, hasStarted]);
 
-  if (!project) return <div>Projeto nao encontrado.</div>;
-
-  const docPanelTitle = useMemo(() => {
-    switch (activeTab) {
-      case 'processes':
-        return 'Documentos de Processo';
-      case 'risks':
-        return 'Analises de Risco';
-      case 'design':
-        return 'Entregas de Design';
-      case 'metrics':
-        return 'Relatorios de Metricas';
-      case 'meetings':
-        return 'Atas e Decisoes';
-      default:
-        return 'Documentacao Gerada';
-    }
-  }, [activeTab]);
-
-  const artifactInfo = useMemo(() => {
-    const baseName = project?.name || 'artefato';
-    switch (activeTab) {
-      case 'processes':
-        return { filename: `${baseName}-processo.bpmn`, mime: 'application/xml' };
-      case 'planning':
-        return { filename: `${baseName}-backlog.html`, mime: 'text/html' };
-      case 'risks':
-        return { filename: `${baseName}-riscos.html`, mime: 'text/html' };
-      case 'design':
-        return { filename: `${baseName}-design.html`, mime: 'text/html' };
-      case 'metrics':
-        return { filename: `${baseName}-metricas.html`, mime: 'text/html' };
-      case 'comms':
-        return { filename: `${baseName}-comunicacao.html`, mime: 'text/html' };
-      case 'meetings':
-        return { filename: `${baseName}-ata.html`, mime: 'text/html' };
-      default: // overview/PM AI outputs
-        return { filename: `${baseName}-artefato.html`, mime: 'text/html' };
-    }
-  }, [activeTab, project]);
-
-  const renderContextBar = () => {
-    if (!project) return null;
-    const ultimaAcao = projectProfile?.ultimaAcao || 'Nenhuma ação registrada';
-    const etapaAtual = projectProfile?.etapa || stageLabel;
-    const historicoTotal = projectProfile?.historico?.length || 0;
-    const resumoCurto = (ultimaAcao || '').split('\n').join(' ').slice(0, 220);
-
-    return (
-      <div className={`flex flex-wrap items-center gap-3 border p-4 rounded-2xl shadow ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-500">Barra de contexto</span>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-tight">
-          <span className="px-3 py-1 rounded-xl bg-brand-500/10 text-brand-700 border border-brand-500/20">Projeto: {project.name}</span>
-          <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Etapa: {etapaAtual}</span>
-          <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Última ação: {ultimaAcao}</span>
-          <span className="px-3 py-1 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">Interações: {historicoTotal}</span>
-        </div>
-        {!showContextDetails && (
-          <div className="w-full">
-            <p className="text-xs text-slate-500 mt-2 line-clamp-2">{resumoCurto}</p>
-            <button
-              onClick={() => setShowContextDetails(true)}
-              className="mt-1 text-[10px] font-black uppercase tracking-widest text-brand-600 hover:text-brand-500"
-            >
-              Ver contexto completo
-            </button>
-          </div>
-        )}
-
-        {showContextDetails && (
-          <div className="w-full border rounded-xl p-3 bg-slate-50 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 max-h-56 overflow-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand-600">Contexto detalhado</span>
-              <button
-                onClick={() => setShowContextDetails(false)}
-                className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
-              >
-                Fechar
-              </button>
-            </div>
-            <p className="whitespace-pre-wrap leading-relaxed">{ultimaAcao}</p>
-          </div>
-        )}
-      </div>
-    );
+    setArtifactDrawerOpen(false);
   };
 
-  const renderSuggestion = () => {
-    if (!project) return null;
-    return (
-      <SuggestionCard
-        title="Criar fluxo BPMN"
-        reason="Baseado na etapa atual, sugerimos estruturar o processo antes de detalhar entregas."
-        primaryLabel="Executar sugestão"
-        onPrimary={() => setActiveTab('processes')}
-        onSecondary={() => setActiveTab('planning')}
-      />
-    );
-  };
-
-  const renderValueCard = () => (
-    <div className={`border p-6 rounded-[32px] space-y-6 shadow-xl ${theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'}`}>
-      <h3 className="text-brand-600 font-black flex items-center gap-2 text-xs uppercase tracking-wider"><Target size={18}/> Valor do Projeto</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Descricao de Valor</label>
-          <textarea 
-            value={valorDescricao} 
-            onChange={(e) => setValorDescricao(e.target.value)}
-            className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 h-24 resize-none transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
-            placeholder="Descreva o valor esperado..."
-          />
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Stakeholders (separar por virgula)</label>
-            <input 
-              value={valorStakeholders} 
-              onChange={(e) => setValorStakeholders(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
-              placeholder="PM, Cliente, Suporte"
-            />
-          </div>
-          <div>
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Metricas (separar por virgula)</label>
-            <input 
-              value={valorMetricas} 
-              onChange={(e) => setValorMetricas(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
-              placeholder="NPS, CSAT, Adocao"
-            />
-          </div>
-          <div>
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Prazo</label>
-            <input 
-              value={valorPrazo} 
-              onChange={(e) => setValorPrazo(e.target.value)}
-              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${theme === 'light' ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'}`}
-              placeholder="90 dias"
-            />
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-        <span>Atualizado em {new Date(projectContext.atualizadoEm).toLocaleString()}</span>
-        <button
-          onClick={() => {
-            const sanitizeList = (raw: string) => raw.split(',').map((item) => item.trim()).filter(Boolean);
-            const updated = updateContext(
-              {
-                valor: {
-                  descricao: valorDescricao,
-                  stakeholders: sanitizeList(valorStakeholders),
-                  metricas: sanitizeList(valorMetricas),
-                  prazo: valorPrazo,
-                }
-              },
-              id
-            );
-            setProjectContext(updated);
-          }}
-          className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-all shadow-md shadow-brand-500/20"
-        >
-          Salvar Valor
-        </button>
-      </div>
-    </div>
+  const selectedContent = readArtifactContent(selectedArtifact);
+  const drawerInitialValues = buildArtifactEditorDefaults(
+    drawerTargetArtifact || undefined,
+    artifactScopeFilter === 'ALL' ? 'PM' : artifactScopeFilter
   );
+  const drawerTitle =
+    artifactDrawerMode === 'create'
+      ? 'Novo artefato'
+      : artifactDrawerMode === 'version'
+      ? 'Nova versao do artefato'
+      : 'Editar artefato';
+  const drawerSubmitLabel =
+    artifactDrawerMode === 'create'
+      ? 'Criar artefato'
+      : artifactDrawerMode === 'version'
+      ? 'Criar versao'
+      : 'Salvar alteracoes';
 
-  const renderDocumentationPanel = () => {
-    const hasDoc = Boolean(lastAssistantDoc);
-    return (
-      <div className={`border rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-4 ${
-        theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'
-      }`}>
-        <div className="flex items-center justify-between gap-3 border-b pb-3">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-brand-500">Sincronizado</p>
-            <h4 className={`text-lg font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-              {docPanelTitle}
-            </h4>
-          </div>
-          <div className="flex gap-2">
-            <div className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-brand-500/10 text-brand-600 border border-brand-500/20">
-              Live Engine Active
-            </div>
-            <button
-              disabled={!hasDoc}
-              onClick={() => {
-                const payload = buildDocumentContent();
-                if (!payload) return;
-                const blob = new Blob([payload], { type: artifactInfo.mime });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = artifactInfo.filename;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors ${
-                hasDoc 
-                  ? 'bg-brand-600 text-white hover:bg-brand-500 shadow shadow-brand-500/30' 
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
-              }`}
-              title="Baixar a ultima versao do artefato"
-            >
-              <Download size={14} /> Baixar
-            </button>
-          </div>
-        </div>
-
-        {lastAttachments.length > 0 && (
-          <div className={`p-4 rounded-2xl border ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/40 border-slate-800'}`}>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Anexos usados</p>
-            <div className="flex flex-wrap gap-2">
-              {lastAttachments.map((name, idx) => (
-                <span key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-blue-600/10 text-blue-700 dark:text-blue-200 border-blue-500/30">
-                  <Paperclip size={12} /> {name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {hasDoc ? (
-          <div className={`flex-1 overflow-auto rounded-2xl border p-4 markdown-content custom-scrollbar ${
-            theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-slate-950/50 border-slate-800'
-          }`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {lastAssistantDoc?.content || ''}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <div className={`flex-1 border rounded-2xl p-10 text-center flex flex-col items-center justify-center gap-4 ${
-            theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/50 border-slate-800'
-          }`}>
-            <div className={`p-6 rounded-full border shadow-xl ${theme === 'light' ? 'bg-white border-slate-200 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
-              <Box size={48} />
-            </div>
-            <div className="space-y-2">
-              <h3 className={`text-lg font-black uppercase tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Aguardando Documentacao</h3>
-              <p className="text-sm text-slate-500 max-w-sm font-medium">
-                Assim que o especialista responder, a documentacao aparece aqui e voce pode baixar o artefato.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  const shareAction = (email: string, role: 'OWNER' | 'EDITOR' | 'VIEWER') => {
+    shareProject({
+      projectId: project.id,
+      email,
+      role,
+      grantedBy: actor,
+    });
   };
 
-
+  const updateFromForm = (values: {
+    name: string;
+    objective: string;
+    description: string;
+    clientId: string;
+    responsible: string;
+    methodology: Project['methodology'];
+    status: Project['status'];
+    startDate: string;
+    endDate?: string;
+    stakeholders: string;
+    nextStep: string;
+    phase: string;
+    health: Project['health'];
+  }) => {
+    updateProject(
+      project.id,
+      {
+        ...values,
+        stakeholders: splitStakeholders(values.stakeholders),
+        health: values.health,
+      },
+      actor
+    );
+    setEditingProject(false);
+  };
 
   return (
-    <div className="space-y-8 pb-20 animate-in fade-in duration-700">
-      <header className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <button onClick={() => navigate('/projects')} className="group flex items-center gap-2 text-slate-500 hover:text-brand-600 transition-all text-xs font-black uppercase tracking-widest w-fit">
-            <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar aos Projetos
-          </button>
-          
-          <button 
-            onClick={handleGlobalReset}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
-              theme === 'light' 
-                ? 'text-slate-400 border-slate-200 hover:text-red-500 hover:bg-red-50' 
-                : 'text-slate-500 border-slate-700 hover:text-red-400 hover:bg-red-500/10'
-            }`}
-            title="Limpa o contexto de todos os especialistas deste projeto"
-          >
-            <RefreshCw size={14} /> Reiniciar Sistema de IA
-          </button>
+    <div className="space-y-5">
+      <button onClick={() => navigate('/projects')} className="text-sm font-semibold text-brand-500 hover:underline">
+        Voltar para projetos
+      </button>
+
+      <ProjectHeader
+        project={project}
+        onEdit={() => setEditingProject(true)}
+        onShare={() => setShareOpen(true)}
+      />
+
+      <QuickActionsBar
+        onOpenAgent={() => openAgent('pmAiPartner')}
+        onCopyContext={copyContext}
+        onSaveArtifact={() => openCreateArtifactDrawer()}
+        onOpenDrive={() => {
+          if (project.folderRef?.projectFolderUrl) {
+            window.open(project.folderRef.projectFolderUrl, '_blank', 'noopener,noreferrer');
+          } else {
+            alert('Link de pasta nao disponivel.');
+          }
+        }}
+        onShare={() => setShareOpen(true)}
+      />
+
+      <div className={`rounded-2xl border p-2 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-xl px-3 py-2 text-xs font-semibold ${
+                activeTab === tab.id
+                  ? 'bg-brand-600 text-white'
+                  : theme === 'light'
+                  ? 'text-slate-700 hover:bg-slate-100'
+                  : 'text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        
-        <div className={`border p-8 rounded-[40px] shadow-2xl relative overflow-hidden transition-colors group ${
-          theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 blur-3xl rounded-full -mr-32 -mt-32"></div>
-          
-          <div className="relative z-10 flex-1 min-w-0 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] font-black rounded-lg border border-brand-500/20 uppercase tracking-widest">{project.methodology}</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
-              <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">ID: {project.id.slice(0, 8)}</span>
+      </div>
+
+      {editingProject && (
+        <ProjectForm
+          clients={clients}
+          initialProject={project}
+          onCancel={() => setEditingProject(false)}
+          onSubmit={updateFromForm}
+        />
+      )}
+
+      {activeTab === 'overview' && (
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+              <h2 className="text-lg font-black">Visao geral do projeto</h2>
+              <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Objetivo</p>
+                  <p>{project.objective}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descricao</p>
+                  <p>{project.description || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Proximos passos</p>
+                  <p>{project.nextStep || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Riscos e decisoes</p>
+                  <p>Registre na aba Historico e artefatos de status.</p>
+                </div>
+              </div>
             </div>
-            
-            <h2 className={`text-4xl md:text-5xl font-black tracking-tighter leading-tight uppercase group-hover:text-brand-600 transition-colors ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-              {project.name}
-            </h2>
-            
-            <p className={`text-base font-bold uppercase tracking-tight leading-relaxed max-w-3xl ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
-              {project.objective}
-            </p>
+
+            <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+              <h3 className="text-sm font-black uppercase tracking-wider">Artefatos recentes</h3>
+              <div className="mt-3 space-y-2">
+                {projectArtifacts.slice(0, 5).map((artifact) => (
+                  <button key={artifact.id} onClick={() => { setSelectedArtifact(artifact); setActiveTab('artifacts'); }} className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left ${theme === 'light' ? 'border-slate-200 hover:bg-slate-50' : 'border-slate-700 hover:bg-slate-800'}`}>
+                    <div>
+                      <p className="text-sm font-semibold">{artifact.name}</p>
+                      <p className="text-xs text-slate-500">{artifact.scope} · v{artifact.currentVersion}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-brand-500">Abrir</span>
+                  </button>
+                ))}
+                {projectArtifacts.length === 0 && <p className="text-sm text-slate-500">Sem artefatos criados.</p>}
+              </div>
+            </div>
           </div>
-        </div>
-      </header>
 
-      {renderContextBar()}
-      {renderSuggestion()}
+          <ContextPanel project={project} />
+        </section>
+      )}
 
-      <div className="sticky top-4 z-40">
-        <div className={`flex items-center gap-1 p-2 rounded-[28px] border overflow-x-auto whitespace-nowrap scrollbar-hide shadow-2xl backdrop-blur-xl ${
-          theme === 'light' ? 'bg-white/90 border-slate-200' : 'bg-slate-900/90 border-slate-800'
-        }`}>
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
-                  isActive 
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
-                    : `hover:bg-slate-100 dark:hover:bg-slate-800 ${theme === 'light' ? 'text-slate-500' : 'text-slate-500 hover:text-slate-200'}`
+      {activeTab === 'context' && (
+        <section className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+          <h2 className="text-lg font-black">Contexto do projeto</h2>
+          <p className="mt-1 text-sm text-slate-500">Use este contexto como base ao abrir qualquer agente.</p>
+          <textarea
+            value={contextText}
+            readOnly
+            className={`mt-3 h-[320px] w-full rounded-xl border p-3 text-sm ${theme === 'light' ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-700 bg-slate-950 text-slate-200'}`}
+          />
+          <div className="mt-3 flex gap-2">
+            <button onClick={copyContext} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">Copiar contexto</button>
+            <button onClick={() => setEditingProject(true)} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700">Editar projeto</button>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'agents' && (
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {AGENTS_META.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              id={agent.id}
+              name={agent.name}
+              description={agent.description}
+              whenToUse={agent.whenToUse}
+              inputType={agent.inputType}
+              outputType={agent.outputType}
+              onOpenAgent={() => openAgent(agent.id)}
+              onCopyContext={copyContext}
+              onViewArtifacts={() => {
+                setArtifactScopeFilter(agent.scope);
+                setActiveTab('artifacts');
+              }}
+            />
+          ))}
+        </section>
+      )}
+
+      {activeTab === 'artifacts' && (
+        <section className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(['ALL', 'CONTEXT', 'SAI', 'PM', 'BPMN', 'STATUS', 'OTHER'] as const).map((item) => (
+              <button
+                key={item}
+                onClick={() => setArtifactScopeFilter(item)}
+                className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                  artifactScopeFilter === item
+                    ? 'border-brand-500/30 bg-brand-500/10 text-brand-500'
+                    : theme === 'light'
+                    ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                    : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
                 }`}
               >
-                <Icon size={16} strokeWidth={isActive ? 3 : 2} /> 
-                {tab.label}
+                {item}
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+            <button onClick={() => openCreateArtifactDrawer()} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">
+              Novo artefato
+            </button>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-h-[600px]">
-          <div className={`border p-6 rounded-[32px] border-l-4 border-l-brand-600 shadow-xl transition-colors ${
-            theme === 'light' ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'
-          }`}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${theme === 'light' ? 'bg-slate-50 text-brand-600 border border-slate-100' : 'bg-slate-800 text-brand-400'}`}>
-                  <Eye size={22} />
-                </div>
-                <div>
-                  <h4 className={`text-sm font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>Monitoramento Operacional</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Artefatos e insights gerados por IA</p>
-                </div>
+          <ArtifactList
+            artifacts={filteredArtifacts}
+            onSelect={setSelectedArtifact}
+            onOpenLink={openArtifactLink}
+            onEditArtifact={openEditArtifactDrawer}
+            onUpdateArtifact={openEditArtifactDrawer}
+            onNewVersion={openVersionArtifactDrawer}
+            onDeleteArtifact={handleDeleteArtifact}
+            selectedArtifactId={selectedArtifact?.id}
+          />
+
+          {selectedArtifact && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-500">Dados do artefato</p>
+                <h3 className="mt-1 text-lg font-black">{selectedArtifact.name}</h3>
+                <p className="mt-2 text-sm text-slate-500">Tipo: {selectedArtifact.type}</p>
+                <p className="text-sm text-slate-500">Escopo: {selectedArtifact.scope}</p>
+                <p className="text-sm text-slate-500">Agente: {selectedArtifact.agentId || '-'}</p>
+                <p className="text-sm text-slate-500">Status: {selectedArtifact.status}</p>
+                <p className="text-sm text-slate-500">Versao atual: v{selectedArtifact.currentVersion}</p>
+                <p className="text-sm text-slate-500">Atualizado por: {selectedArtifact.updatedBy}</p>
+                <p className="text-sm text-slate-500">Ultima atualizacao: {new Date(selectedArtifact.updatedAt).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="hidden md:flex items-center gap-4 text-right">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Saude</span>
-                  <span className={`text-[11px] font-black ${metrics?.healthColor || 'text-slate-500'}`}>{metrics?.healthStatus || '--'}</span>
+
+              {selectedArtifact.format === 'html' ? (
+                <HtmlPreviewPanel htmlContent={selectedContent} title="Preview HTML" />
+              ) : selectedArtifact.scope === 'BPMN' ? (
+                <BpmnPreviewPanel content={selectedContent} title="Preview BPMN" />
+              ) : (
+                <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-brand-500">Preview textual</p>
+                  <pre className={`mt-2 max-h-[400px] overflow-auto rounded-xl border p-3 text-xs ${theme === 'light' ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-700 bg-slate-950 text-slate-200'}`}>
+                    {selectedContent || 'Sem conteudo na versao atual.'}
+                  </pre>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Progresso</span>
-                  <span className="text-[11px] font-black text-brand-500">{metrics?.timeProgress || 0}%</span>
-                </div>
-              </div>
+              )}
             </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === 'history' && (
+        <section className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+          <h2 className="text-lg font-black">Historico do projeto</h2>
+          <div className="mt-4 space-y-3">
+            {projectHistory.map((event) => (
+              <article key={event.id} className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/40'}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{event.summary}</p>
+                  <span className="text-xs text-slate-500">{new Date(event.createdAt).toLocaleString('pt-BR')}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Tipo: {event.type} · Autor: {event.actor} {event.agentId ? `· Agente: ${event.agentId}` : ''}</p>
+              </article>
+            ))}
+            {projectHistory.length === 0 && <p className="text-sm text-slate-500">Sem historico registrado para este projeto.</p>}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'sharing' && (
+        <section className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+          <h2 className="text-lg font-black">Compartilhamento</h2>
+          <p className="mt-1 text-sm text-slate-500">Gerencie quem pode acessar este projeto.</p>
+          <div className="mt-3">
+            <button onClick={() => setShareOpen(true)} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">Adicionar acesso</button>
           </div>
 
-          {renderValueCard()}
-
-          <div className="h-[750px]">
-            <ChatPanel 
-              agentId={activeAgent.agentId} 
-              projectId={id} 
-              projectName={project.name}
-              stage={stageLabel}
-              onInteractionSaved={(_, saved) => setProjectProfile(saved || getProject(project.id))}
-              key={chatId}
-            />
+          <div className="mt-4 space-y-2">
+            {(project.sharedWith || []).map((access) => (
+              <div key={access.id} className={`flex items-center justify-between rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/40'}`}>
+                <div>
+                  <p className="text-sm font-semibold">{access.email}</p>
+                  <p className="text-xs text-slate-500">{access.role} · {new Date(access.grantedAt).toLocaleString('pt-BR')}</p>
+                </div>
+                <button onClick={() => removeProjectShare(project.id, access.id, actor)} className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold dark:border-slate-700">Remover</button>
+              </div>
+            ))}
+            {(project.sharedWith || []).length === 0 && <p className="text-sm text-slate-500">Sem pessoas compartilhadas.</p>}
           </div>
-        </div>
+        </section>
+      )}
 
-      <div className="lg:col-span-5 xl:col-span-4">
-        <div className="sticky top-28 space-y-4">
-          {renderDocumentationPanel()}
-          {techLast && <TechOutputViewer content={techLast.content} theme={theme} />}
-        </div>
-      </div>
+      <ArtifactEditorDrawer
+        open={artifactDrawerOpen}
+        title={drawerTitle}
+        submitLabel={drawerSubmitLabel}
+        initialValues={drawerInitialValues}
+        onClose={() => setArtifactDrawerOpen(false)}
+        onSubmit={submitArtifactFromDrawer}
+      />
+
+      <ShareProjectModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        onShare={shareAction}
+        onRemove={(accessId) => removeProjectShare(project.id, accessId, actor)}
+        accesses={project.sharedWith || []}
+      />
     </div>
-  </div>
-);
+  );
 };
-
-

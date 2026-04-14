@@ -1,64 +1,60 @@
-
-import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { MainLayout } from './components/Layout';
+import React, { useEffect } from 'react';
+import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { AppShell } from './components/AppShell';
 import { Login } from './components/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Clients } from './pages/Clients';
 import { Projects } from './pages/Projects';
 import { ProjectWorkspace } from './pages/ProjectWorkspace';
+import { ArtifactsPage } from './pages/Artifacts';
+import { ProjectArtifactsPage } from './pages/ProjectArtifacts';
 import { AgentsLab } from './pages/AgentsLab';
-import { Settings } from './pages/Settings';
 import { Help } from './pages/Help';
+import { Settings } from './pages/Settings';
+import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
-import { getContext } from './services/contextService';
+import { useWorkspaceStore } from './store/useWorkspaceStore';
+import { AuthUser } from './types';
 
 const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const login = useAuthStore((state) => state.login);
+  const seedDemoData = useWorkspaceStore((state) => state.seedDemoData);
 
   useEffect(() => {
-    const context = getContext();
-    if (typeof window !== 'undefined') {
-      (window as any).__PM_PROJECT_CONTEXT__ = context;
-    }
-  }, []);
-
-  useEffect(() => {
-    // Aplica o tema diretamente ao body para efeitos globais
     document.documentElement.className = theme === 'light' ? 'light-theme' : 'dark-theme';
-    
-    // Check if user has "logged in" in this session (optional)
-    const sessionAuth = sessionStorage.getItem('pm-cockpit-auth');
-    if (sessionAuth === 'true') {
-      setIsAuthenticated(true);
-    }
   }, [theme]);
 
-  const handleEnter = () => {
-    setIsAuthenticated(true);
-    sessionStorage.setItem('pm-cockpit-auth', 'true');
+  useEffect(() => {
+    seedDemoData();
+  }, [seedDemoData]);
+
+  const handleAuthenticated = (authenticatedUser: AuthUser) => {
+    login(authenticatedUser);
   };
 
-  if (!isAuthenticated) {
-    return <Login onEnter={handleEnter} />;
+  if (!user) {
+    return <Login onAuthenticated={handleAuthenticated} />;
   }
 
   return (
-    <div className={theme === 'light' ? 'light-theme' : 'dark-theme'}>
-      <Router>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:id" element={<ProjectWorkspace />} />
-            <Route path="/agents" element={<AgentsLab />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </MainLayout>
-      </Router>
-    </div>
+    <Router>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:id" element={<ProjectWorkspace />} />
+          <Route path="/artifacts" element={<ArtifactsPage />} />
+          <Route path="/artifacts/project/:id" element={<ProjectArtifactsPage />} />
+          <Route path="/agents" element={<AgentsLab />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppShell>
+    </Router>
   );
 };
 
