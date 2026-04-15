@@ -9,6 +9,7 @@ import { ProjectForm } from '../components/ProjectForm';
 import { SideDrawer } from '../components/SideDrawer';
 import { useFeedback } from '../components/FeedbackProvider';
 import { getHealthTone, getStatusTone } from '../services/projectUi';
+import { backendApi } from '../services/backendApi';
 
 const splitStakeholders = (raw: string) =>
   raw
@@ -22,6 +23,8 @@ export const Projects: React.FC = () => {
   const feedback = useFeedback();
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
+  const dataSource = useWorkspaceStore((state) => state.dataSource);
+  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
   const createProject = useWorkspaceStore((state) => state.createProject);
   const updateProject = useWorkspaceStore((state) => state.updateProject);
   const deleteProject = useWorkspaceStore((state) => state.deleteProject);
@@ -48,7 +51,7 @@ export const Projects: React.FC = () => {
     );
   }, [projects, search]);
 
-  const submit = (values: {
+  const submit = async (values: {
     name: string;
     objective: string;
     description: string;
@@ -68,17 +71,30 @@ export const Projects: React.FC = () => {
       ...values,
       stakeholders: splitStakeholders(values.stakeholders),
     };
-
-    if (editing) {
-      updateProject(editing.id, payload, actor);
-      feedback.success('Projeto atualizado com sucesso.');
-      setEditing(null);
-    } else {
-      createProject(payload, actor);
-      feedback.success('Projeto criado com sucesso.');
+    try {
+      if (editing) {
+        if (dataSource === 'api') {
+          await backendApi.updateProject(editing.id, payload);
+          await syncFromApi();
+        } else {
+          updateProject(editing.id, payload, actor);
+        }
+        feedback.success('Projeto atualizado com sucesso.');
+        setEditing(null);
+      } else {
+        if (dataSource === 'api') {
+          await backendApi.createProject(payload);
+          await syncFromApi();
+        } else {
+          createProject(payload, actor);
+        }
+        feedback.success('Projeto criado com sucesso.');
+      }
+      setOpenForm(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o projeto.';
+      feedback.error(message);
     }
-
-    setOpenForm(false);
   };
 
   const handleDeleteProject = async (project: Project) => {
@@ -93,16 +109,27 @@ export const Projects: React.FC = () => {
     if (!approved) return;
 
     setDeletingId(project.id);
-    const removed = deleteProject(project.id, actor);
-    setDeletingId(null);
-    if (!removed) {
-      feedback.error('Nao foi possivel excluir o projeto.');
-      return;
-    }
+    try {
+      if (dataSource === 'api') {
+        await backendApi.deleteProject(project.id);
+        await syncFromApi();
+      } else {
+        const removed = deleteProject(project.id, actor);
+        if (!removed) {
+          feedback.error('Nao foi possivel excluir o projeto.');
+          return;
+        }
+      }
 
-    feedback.success('Projeto excluido com sucesso.');
-    if (viewing?.id === project.id) {
-      setViewing(null);
+      feedback.success('Projeto excluido com sucesso.');
+      if (viewing?.id === project.id) {
+        setViewing(null);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel excluir o projeto.';
+      feedback.error(message);
+    } finally {
+      setDeletingId(null);
     }
   };
 

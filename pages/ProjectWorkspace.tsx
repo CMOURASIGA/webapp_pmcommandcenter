@@ -16,6 +16,7 @@ import { Artifact, CoreAgentId, Project } from '../types';
 import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components/ArtifactEditorDrawer';
 import { useFeedback } from '../components/FeedbackProvider';
 import { SideDrawer } from '../components/SideDrawer';
+import { backendApi } from '../services/backendApi';
 
 const tabs = [
   { id: 'overview', label: 'Visao Geral' },
@@ -115,6 +116,8 @@ export const ProjectWorkspace: React.FC = () => {
   const artifacts = useWorkspaceStore((state) => state.artifacts);
   const history = useWorkspaceStore((state) => state.history);
   const settings = useWorkspaceStore((state) => state.settings);
+  const dataSource = useWorkspaceStore((state) => state.dataSource);
+  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
 
   const updateProject = useWorkspaceStore((state) => state.updateProject);
   const createArtifact = useWorkspaceStore((state) => state.createArtifact);
@@ -245,92 +248,162 @@ export const ProjectWorkspace: React.FC = () => {
     });
     if (!approved) return;
 
-    const removed = deleteArtifact(artifact.id, actor);
-    if (!removed) {
-      feedback.error('Nao foi possivel excluir o artefato.');
-      return;
-    }
+    try {
+      if (dataSource === 'api') {
+        await backendApi.deleteArtifact(artifact.id);
+        await syncFromApi();
+      } else {
+        const removed = deleteArtifact(artifact.id, actor);
+        if (!removed) {
+          feedback.error('Nao foi possivel excluir o artefato.');
+          return;
+        }
+      }
 
-    if (selectedArtifact?.id === artifact.id) {
-      setSelectedArtifact(null);
+      if (selectedArtifact?.id === artifact.id) {
+        setSelectedArtifact(null);
+      }
+      feedback.success('Artefato excluido com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel excluir o artefato.';
+      feedback.error(message);
     }
-    feedback.success('Artefato excluido com sucesso.');
   };
 
-  const submitArtifactFromDrawer = (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
-    if (artifactDrawerMode === 'create') {
-      const created = createArtifact({
-        projectId: project.id,
+  const submitArtifactFromDrawer = async (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
+    try {
+      if (artifactDrawerMode === 'create') {
+        if (dataSource === 'api') {
+          const created = await backendApi.createProjectArtifact(project.id, {
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            content: values.content,
+            status: values.status,
+            link: values.link || undefined,
+            note: values.note || 'Criado via drawer',
+          });
+          await syncFromApi();
+          setSelectedArtifact(created);
+        } else {
+          const created = createArtifact({
+            projectId: project.id,
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            content: values.content,
+            createdBy: actor,
+            status: values.status,
+            agentId: values.agentId,
+            link: values.link || undefined,
+            note: values.note || 'Criado via drawer',
+          });
+          setSelectedArtifact(created);
+        }
+
+        setArtifactScopeFilter(values.scope);
+        setActiveTab('artifacts');
+        setArtifactDrawerOpen(false);
+        feedback.success('Artefato criado com sucesso.');
+        return;
+      }
+
+      if (!drawerTargetArtifact) return;
+      const beforeContent = readArtifactContent(drawerTargetArtifact);
+
+      if (dataSource === 'api') {
+        if (artifactDrawerMode === 'version') {
+          await backendApi.updateArtifact(drawerTargetArtifact.id, {
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            status: values.status,
+            link: values.link || null,
+          });
+          const updated = await backendApi.createArtifactVersion(drawerTargetArtifact.id, {
+            content: values.content,
+            note: values.note || 'Nova versao criada via drawer',
+            status: values.status,
+            link: values.link || null,
+          });
+          await syncFromApi();
+          setSelectedArtifact(updated);
+          setArtifactDrawerOpen(false);
+          feedback.success('Nova versao criada com sucesso.');
+          return;
+        }
+
+        const updated = await backendApi.updateArtifact(drawerTargetArtifact.id, {
+          name: values.name,
+          type: values.type,
+          scope: values.scope,
+          format: values.format,
+          status: values.status,
+          link: values.link || null,
+          ...(beforeContent !== values.content ? { content: values.content, note: values.note || 'Edicao via drawer' } : {}),
+        });
+        await syncFromApi();
+        setSelectedArtifact(updated);
+        setArtifactDrawerOpen(false);
+        feedback.success(beforeContent !== values.content ? 'Artefato atualizado com sucesso.' : 'Dados do artefato atualizados com sucesso.');
+        return;
+      }
+
+      const metaUpdated = updateArtifactMeta(drawerTargetArtifact.id, {
         name: values.name,
         type: values.type,
         scope: values.scope,
         format: values.format,
-        content: values.content,
-        createdBy: actor,
         status: values.status,
+        link: values.link || undefined,
         agentId: values.agentId,
-        link: values.link || undefined,
-        note: values.note || 'Criado via drawer',
-      });
-      setSelectedArtifact(created);
-      setArtifactScopeFilter(values.scope);
-      setActiveTab('artifacts');
-      setArtifactDrawerOpen(false);
-      feedback.success('Artefato criado com sucesso.');
-      return;
-    }
-
-    if (!drawerTargetArtifact) return;
-
-    const beforeContent = readArtifactContent(drawerTargetArtifact);
-    const metaUpdated = updateArtifactMeta(drawerTargetArtifact.id, {
-      name: values.name,
-      type: values.type,
-      scope: values.scope,
-      format: values.format,
-      status: values.status,
-      link: values.link || undefined,
-      agentId: values.agentId,
-      updatedBy: actor,
-    });
-
-    if (!metaUpdated) {
-      feedback.error('Nao foi possivel atualizar o artefato.');
-      return;
-    }
-
-    if (artifactDrawerMode === 'version') {
-      const updated = updateArtifact(drawerTargetArtifact.id, {
-        content: values.content,
         updatedBy: actor,
-        strategy: 'new-version',
-        note: values.note || 'Nova versao criada via drawer',
-        status: values.status,
-        link: values.link || undefined,
       });
-      if (updated) setSelectedArtifact(updated);
+
+      if (!metaUpdated) {
+        feedback.error('Nao foi possivel atualizar o artefato.');
+        return;
+      }
+
+      if (artifactDrawerMode === 'version') {
+        const updated = updateArtifact(drawerTargetArtifact.id, {
+          content: values.content,
+          updatedBy: actor,
+          strategy: 'new-version',
+          note: values.note || 'Nova versao criada via drawer',
+          status: values.status,
+          link: values.link || undefined,
+        });
+        if (updated) setSelectedArtifact(updated);
+        setArtifactDrawerOpen(false);
+        feedback.success('Nova versao criada com sucesso.');
+        return;
+      }
+
+      if (beforeContent !== values.content) {
+        const updated = updateArtifact(drawerTargetArtifact.id, {
+          content: values.content,
+          updatedBy: actor,
+          strategy: 'overwrite',
+          note: values.note || 'Edicao via drawer',
+          status: values.status,
+          link: values.link || undefined,
+        });
+        if (updated) setSelectedArtifact(updated);
+        feedback.success('Artefato atualizado com sucesso.');
+      } else {
+        setSelectedArtifact(metaUpdated);
+        feedback.success('Dados do artefato atualizados com sucesso.');
+      }
+
       setArtifactDrawerOpen(false);
-      feedback.success('Nova versao criada com sucesso.');
-      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o artefato.';
+      feedback.error(message);
     }
-
-    if (beforeContent !== values.content) {
-      const updated = updateArtifact(drawerTargetArtifact.id, {
-        content: values.content,
-        updatedBy: actor,
-        strategy: 'overwrite',
-        note: values.note || 'Edicao via drawer',
-        status: values.status,
-        link: values.link || undefined,
-      });
-      if (updated) setSelectedArtifact(updated);
-      feedback.success('Artefato atualizado com sucesso.');
-    } else {
-      setSelectedArtifact(metaUpdated);
-      feedback.success('Dados do artefato atualizados com sucesso.');
-    }
-
-    setArtifactDrawerOpen(false);
   };
 
   const selectedContent = readArtifactContent(selectedArtifact);
@@ -351,16 +424,42 @@ export const ProjectWorkspace: React.FC = () => {
       ? 'Criar versao'
       : 'Salvar alteracoes';
 
-  const shareAction = (email: string, role: 'OWNER' | 'EDITOR' | 'VIEWER') => {
-    shareProject({
-      projectId: project.id,
-      email,
-      role,
-      grantedBy: actor,
-    });
+  const shareAction = async (email: string, role: 'OWNER' | 'EDITOR' | 'VIEWER') => {
+    try {
+      if (dataSource === 'api') {
+        await backendApi.shareProject(project.id, { email, role });
+        await syncFromApi();
+      } else {
+        shareProject({
+          projectId: project.id,
+          email,
+          role,
+          grantedBy: actor,
+        });
+      }
+      feedback.success('Compartilhamento atualizado com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel compartilhar o projeto.';
+      feedback.error(message);
+    }
   };
 
-  const updateFromForm = (values: {
+  const handleRemoveShare = async (accessId: string) => {
+    try {
+      if (dataSource === 'api') {
+        await backendApi.removeProjectMember(project.id, accessId);
+        await syncFromApi();
+      } else {
+        removeProjectShare(project.id, accessId, actor);
+      }
+      feedback.success('Compartilhamento removido com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel remover o compartilhamento.';
+      feedback.error(message);
+    }
+  };
+
+  const updateFromForm = async (values: {
     name: string;
     objective: string;
     description: string;
@@ -375,17 +474,25 @@ export const ProjectWorkspace: React.FC = () => {
     phase: string;
     health: Project['health'];
   }) => {
-    updateProject(
-      project.id,
-      {
-        ...values,
-        stakeholders: splitStakeholders(values.stakeholders),
-        health: values.health,
-      },
-      actor
-    );
-    feedback.success('Projeto atualizado com sucesso.');
-    setEditingProject(false);
+    const payload = {
+      ...values,
+      stakeholders: splitStakeholders(values.stakeholders),
+      health: values.health,
+    };
+
+    try {
+      if (dataSource === 'api') {
+        await backendApi.updateProject(project.id, payload);
+        await syncFromApi();
+      } else {
+        updateProject(project.id, payload, actor);
+      }
+      feedback.success('Projeto atualizado com sucesso.');
+      setEditingProject(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel atualizar o projeto.';
+      feedback.error(message);
+    }
   };
 
   return (
@@ -652,7 +759,7 @@ export const ProjectWorkspace: React.FC = () => {
                   <p className="text-sm font-semibold">{access.email}</p>
                   <p className="text-xs text-slate-500">{access.role} · {new Date(access.grantedAt).toLocaleString('pt-BR')}</p>
                 </div>
-                <button onClick={() => removeProjectShare(project.id, access.id, actor)} className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold dark:border-slate-700">Remover</button>
+                <button onClick={() => handleRemoveShare(access.id)} className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold dark:border-slate-700">Remover</button>
               </div>
             ))}
             {(project.sharedWith || []).length === 0 && <p className="text-sm text-slate-500">Sem pessoas compartilhadas.</p>}
@@ -673,7 +780,7 @@ export const ProjectWorkspace: React.FC = () => {
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         onShare={shareAction}
-        onRemove={(accessId) => removeProjectShare(project.id, accessId, actor)}
+        onRemove={handleRemoveShare}
         accesses={project.sharedWith || []}
       />
     </div>

@@ -45,3 +45,13 @@ export const authMode = (): 'google' | 'local' => {
   if (value === 'google') return 'google';
   return 'local';
 };
+
+export const backendMode = (): 'api' | 'local' => {
+  const value = env.VITE_BACKEND_MODE;
+  if (value === 'api') return 'api';
+  return 'local';
+};
+
+export const apiBaseUrl = (): string => {
+  return env.VITE_API_BASE_URL || '';
+};

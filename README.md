@@ -8,7 +8,10 @@ Plataforma de gestao de projetos orientada por fluxo:
 
 - React + Vite + TypeScript
 - Tailwind CSS
-- Zustand (persistencia local)
+- Zustand (cache local)
+- Vercel Functions (API)
+- Prisma + Postgres
+- Google OAuth2 + Drive API + Sheets API
 
 ## Arquitetura implementada nesta base
 
@@ -52,7 +55,7 @@ Metadados armazenados por artefato:
 
 Links configuraveis via variaveis `VITE_AGENT_*`.
 
-## Configuracao local
+## Configuracao local (modo rapido)
 
 1. Instale dependencias:
 
@@ -61,8 +64,7 @@ npm install
 ```
 
 2. Crie seu arquivo `.env.local` a partir de `.env.example`.
-
-3. Execute o projeto:
+3. Rode em modo local (`VITE_BACKEND_MODE=local`):
 
 ```bash
 npm run dev
@@ -74,14 +76,34 @@ npm run dev
 npm run build
 ```
 
-## Variaveis de ambiente
+## Configuracao local com backend real (OAuth + Drive + Sheets)
+
+Guia completo: [documentos/Setup_Local_e_Vercel_Backend_Google.md](documentos/Setup_Local_e_Vercel_Backend_Google.md)
+
+Resumo de comandos:
+
+```bash
+npm run db:generate
+npm run db:push
+vercel dev --listen 3000
+# em outro terminal
+npm run dev
+```
+
+## Variaveis de ambiente (principais)
 
 Arquivo base: `.env.example`
 
 Principais variaveis:
 
 - `VITE_AUTH_MODE=local|google`
+- `VITE_BACKEND_MODE=local|api`
+- `VITE_API_BASE_URL`
 - `VITE_GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+- `DATABASE_URL`
+- `SESSION_SECRET`
 - `VITE_AGENT_SAI_URL`
 - `VITE_AGENT_PM_URL`
 - `VITE_AGENT_BPMN_URL`

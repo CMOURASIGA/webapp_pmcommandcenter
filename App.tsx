@@ -16,20 +16,40 @@ import { useThemeStore } from './store/useThemeStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { AuthUser } from './types';
 import { FeedbackProvider } from './components/FeedbackProvider';
+import { backendMode } from './services/envService';
 
 const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
   const login = useAuthStore((state) => state.login);
+  const loadingSession = useAuthStore((state) => state.loadingSession);
+  const checkBackendSession = useAuthStore((state) => state.checkBackendSession);
   const seedDemoData = useWorkspaceStore((state) => state.seedDemoData);
+  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
+  const setDataSource = useWorkspaceStore((state) => state.setDataSource);
+  const runtimeBackendMode = backendMode();
 
   useEffect(() => {
     document.documentElement.className = theme === 'light' ? 'light-theme' : 'dark-theme';
   }, [theme]);
 
   useEffect(() => {
+    setDataSource(runtimeBackendMode);
+  }, [runtimeBackendMode, setDataSource]);
+
+  useEffect(() => {
+    if (runtimeBackendMode === 'api') {
+      checkBackendSession().catch(() => null);
+      return;
+    }
     seedDemoData();
-  }, [seedDemoData]);
+  }, [checkBackendSession, runtimeBackendMode, seedDemoData]);
+
+  useEffect(() => {
+    if (runtimeBackendMode !== 'api') return;
+    if (!user) return;
+    syncFromApi().catch(() => null);
+  }, [runtimeBackendMode, syncFromApi, user]);
 
   const handleAuthenticated = (authenticatedUser: AuthUser) => {
     login(authenticatedUser);
@@ -37,7 +57,9 @@ const App: React.FC = () => {
 
   return (
     <FeedbackProvider>
-      {!user ? (
+      {!user && loadingSession ? (
+        <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Validando sessao...</div>
+      ) : !user ? (
         <Login onAuthenticated={handleAuthenticated} />
       ) : (
         <Router>

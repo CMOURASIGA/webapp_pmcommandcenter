@@ -9,6 +9,7 @@ import { HtmlPreviewPanel } from '../components/HtmlPreviewPanel';
 import { BpmnPreviewPanel } from '../components/BpmnPreviewPanel';
 import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components/ArtifactEditorDrawer';
 import { useFeedback } from '../components/FeedbackProvider';
+import { backendApi } from '../services/backendApi';
 
 const getArtifactContent = (artifact?: Artifact | null) => {
   if (!artifact) return '';
@@ -24,6 +25,8 @@ export const ProjectArtifactsPage: React.FC = () => {
 
   const projects = useWorkspaceStore((state) => state.projects);
   const artifacts = useWorkspaceStore((state) => state.artifacts);
+  const dataSource = useWorkspaceStore((state) => state.dataSource);
+  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
   const createArtifact = useWorkspaceStore((state) => state.createArtifact);
   const updateArtifact = useWorkspaceStore((state) => state.updateArtifact);
   const updateArtifactMeta = useWorkspaceStore((state) => state.updateArtifactMeta);
@@ -129,91 +132,163 @@ export const ProjectArtifactsPage: React.FC = () => {
     });
     if (!approved) return;
 
-    const removed = deleteArtifact(artifact.id, actor);
-    if (!removed) {
-      feedback.error('Nao foi possivel excluir o artefato.');
-      return;
-    }
+    try {
+      if (dataSource === 'api') {
+        await backendApi.deleteArtifact(artifact.id);
+        await syncFromApi();
+      } else {
+        const removed = deleteArtifact(artifact.id, actor);
+        if (!removed) {
+          feedback.error('Nao foi possivel excluir o artefato.');
+          return;
+        }
+      }
 
-    if (selected?.id === artifact.id) {
-      setSelected(null);
+      if (selected?.id === artifact.id) {
+        setSelected(null);
+      }
+      feedback.success('Artefato excluido com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel excluir o artefato.';
+      feedback.error(message);
     }
-    feedback.success('Artefato excluido com sucesso.');
   };
 
-  const submitDrawer = (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
-    if (drawerMode === 'create') {
-      const created = createArtifact({
-        projectId: project.id,
+  const submitDrawer = async (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
+    try {
+      if (drawerMode === 'create') {
+        if (dataSource === 'api') {
+          const created = await backendApi.createProjectArtifact(project.id, {
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            content: values.content,
+            status: values.status,
+            link: values.link || undefined,
+            note: values.note || 'Criado pela biblioteca de artefatos',
+          });
+          await syncFromApi();
+          setSelected(created);
+        } else {
+          const created = createArtifact({
+            projectId: project.id,
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            content: values.content,
+            createdBy: actor,
+            status: values.status,
+            agentId: values.agentId,
+            link: values.link || undefined,
+            note: values.note || 'Criado pela biblioteca de artefatos',
+          });
+          setSelected(created);
+        }
+
+        setFilter(values.scope);
+        setDrawerOpen(false);
+        feedback.success('Artefato criado com sucesso.');
+        return;
+      }
+
+      if (!drawerTarget) return;
+
+      const beforeContent = getArtifactContent(drawerTarget);
+      if (dataSource === 'api') {
+        if (drawerMode === 'version') {
+          await backendApi.updateArtifact(drawerTarget.id, {
+            name: values.name,
+            type: values.type,
+            scope: values.scope,
+            format: values.format,
+            status: values.status,
+            link: values.link || null,
+          });
+          const updated = await backendApi.createArtifactVersion(drawerTarget.id, {
+            content: values.content,
+            note: values.note || 'Nova versao criada na biblioteca',
+            status: values.status,
+            link: values.link || null,
+          });
+          await syncFromApi();
+          setSelected(updated);
+          setDrawerOpen(false);
+          feedback.success('Nova versao criada com sucesso.');
+          return;
+        }
+
+        const updated = await backendApi.updateArtifact(drawerTarget.id, {
+          name: values.name,
+          type: values.type,
+          scope: values.scope,
+          format: values.format,
+          status: values.status,
+          link: values.link || null,
+          ...(beforeContent !== values.content
+            ? { content: values.content, note: values.note || 'Edicao na biblioteca de artefatos' }
+            : {}),
+        });
+        await syncFromApi();
+        setSelected(updated);
+        setDrawerOpen(false);
+        feedback.success(beforeContent !== values.content ? 'Artefato atualizado com sucesso.' : 'Dados do artefato atualizados com sucesso.');
+        return;
+      }
+
+      const metaUpdated = updateArtifactMeta(drawerTarget.id, {
         name: values.name,
         type: values.type,
         scope: values.scope,
         format: values.format,
-        content: values.content,
-        createdBy: actor,
         status: values.status,
+        link: values.link || undefined,
         agentId: values.agentId,
-        link: values.link || undefined,
-        note: values.note || 'Criado pela biblioteca de artefatos',
-      });
-      setSelected(created);
-      setFilter(values.scope);
-      setDrawerOpen(false);
-      feedback.success('Artefato criado com sucesso.');
-      return;
-    }
-
-    if (!drawerTarget) return;
-
-    const beforeContent = getArtifactContent(drawerTarget);
-    const metaUpdated = updateArtifactMeta(drawerTarget.id, {
-      name: values.name,
-      type: values.type,
-      scope: values.scope,
-      format: values.format,
-      status: values.status,
-      link: values.link || undefined,
-      agentId: values.agentId,
-      updatedBy: actor,
-    });
-
-    if (!metaUpdated) {
-      feedback.error('Nao foi possivel atualizar o artefato.');
-      return;
-    }
-
-    if (drawerMode === 'version') {
-      const updated = updateArtifact(drawerTarget.id, {
-        content: values.content,
         updatedBy: actor,
-        strategy: 'new-version',
-        note: values.note || 'Nova versao criada na biblioteca',
-        status: values.status,
-        link: values.link || undefined,
       });
-      if (updated) setSelected(updated);
+
+      if (!metaUpdated) {
+        feedback.error('Nao foi possivel atualizar o artefato.');
+        return;
+      }
+
+      if (drawerMode === 'version') {
+        const updated = updateArtifact(drawerTarget.id, {
+          content: values.content,
+          updatedBy: actor,
+          strategy: 'new-version',
+          note: values.note || 'Nova versao criada na biblioteca',
+          status: values.status,
+          link: values.link || undefined,
+        });
+        if (updated) setSelected(updated);
+        setDrawerOpen(false);
+        feedback.success('Nova versao criada com sucesso.');
+        return;
+      }
+
+      if (beforeContent !== values.content) {
+        const updated = updateArtifact(drawerTarget.id, {
+          content: values.content,
+          updatedBy: actor,
+          strategy: 'overwrite',
+          note: values.note || 'Edicao na biblioteca de artefatos',
+          status: values.status,
+          link: values.link || undefined,
+        });
+        if (updated) setSelected(updated);
+        feedback.success('Artefato atualizado com sucesso.');
+      } else {
+        setSelected(metaUpdated);
+        feedback.success('Dados do artefato atualizados com sucesso.');
+      }
+
       setDrawerOpen(false);
-      feedback.success('Nova versao criada com sucesso.');
-      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o artefato.';
+      feedback.error(message);
     }
-
-    if (beforeContent !== values.content) {
-      const updated = updateArtifact(drawerTarget.id, {
-        content: values.content,
-        updatedBy: actor,
-        strategy: 'overwrite',
-        note: values.note || 'Edicao na biblioteca de artefatos',
-        status: values.status,
-        link: values.link || undefined,
-      });
-      if (updated) setSelected(updated);
-      feedback.success('Artefato atualizado com sucesso.');
-    } else {
-      setSelected(metaUpdated);
-      feedback.success('Dados do artefato atualizados com sucesso.');
-    }
-
-    setDrawerOpen(false);
   };
 
   const selectedContent = getArtifactContent(selected);

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
 import { AuthUser } from '../types';
-import { authMode } from '../services/envService';
+import { authMode, backendMode } from '../services/envService';
 import { useThemeStore } from '../store/useThemeStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { backendApi } from '../services/backendApi';
 
 interface LoginProps {
   onAuthenticated: (user: AuthUser) => void;
@@ -39,9 +40,47 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
   const settings = useWorkspaceStore((state) => state.settings);
   const [googleReady, setGoogleReady] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const runtimeAuthMode = useMemo(() => authMode(), []);
+  const runtimeBackendMode = useMemo(() => backendMode(), []);
 
   useEffect(() => {
+    if (runtimeBackendMode !== 'api' || runtimeAuthMode !== 'google') return;
+
+    const query = new URLSearchParams(window.location.search);
+    const code = query.get('code');
+    if (!code) return;
+
+    setGoogleLoading(true);
+    backendApi
+      .exchangeGoogleCode(code)
+      .then(() => backendApi.getMe())
+      .then((me) => {
+        if (!me.authenticated || !me.user) {
+          throw new Error('Nao foi possivel autenticar apos callback do Google.');
+        }
+        onAuthenticated({
+          email: me.user.email,
+          name: me.user.name,
+          picture: me.user.picture,
+          provider: 'google',
+        });
+        query.delete('code');
+        query.delete('scope');
+        query.delete('authuser');
+        query.delete('prompt');
+        const nextQuery = query.toString();
+        const nextUrl = `${window.location.origin}${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', nextUrl);
+      })
+      .catch((error) => {
+        setGoogleError(error instanceof Error ? error.message : 'Falha ao concluir login com Google.');
+      })
+      .finally(() => setGoogleLoading(false));
+  }, [onAuthenticated, runtimeAuthMode, runtimeBackendMode]);
+
+  useEffect(() => {
+    if (runtimeBackendMode === 'api') return;
     if (runtimeAuthMode !== 'google') return;
     if (!settings.googleClientId) {
       setGoogleError('VITE_GOOGLE_CLIENT_ID nao configurado. Use modo local para validar.');
@@ -102,6 +141,18 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
     };
   }, [onAuthenticated, runtimeAuthMode, settings.googleClientId, theme]);
 
+  const handleBackendGoogleAccess = async () => {
+    try {
+      setGoogleLoading(true);
+      setGoogleError(null);
+      const authUrl = await backendApi.getGoogleAuthUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      setGoogleError(error instanceof Error ? error.message : 'Nao foi possivel iniciar login com Google.');
+      setGoogleLoading(false);
+    }
+  };
+
   const handleLocalAccess = () => {
     onAuthenticated({
       email: 'local.admin@7c.local',
@@ -128,11 +179,24 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
           {runtimeAuthMode === 'google' ? (
             <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/40'}`}>
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-brand-500">Acesso Google</p>
-              <div id="google-login-button" className="flex justify-center" />
-              {!googleReady && !googleError && (
-                <p className={`mt-2 text-center text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Carregando autenticacao Google...
-                </p>
+              {runtimeBackendMode === 'api' ? (
+                <button
+                  type="button"
+                  onClick={handleBackendGoogleAccess}
+                  disabled={googleLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-60"
+                >
+                  {googleLoading ? 'Conectando...' : 'Entrar com Google'}
+                </button>
+              ) : (
+                <>
+                  <div id="google-login-button" className="flex justify-center" />
+                  {!googleReady && !googleError && (
+                    <p className={`mt-2 text-center text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Carregando autenticacao Google...
+                    </p>
+                  )}
+                </>
               )}
               {googleError && (
                 <p className="mt-2 flex items-center justify-center gap-1 text-xs text-amber-500">
@@ -147,15 +211,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
             </div>
           )}
 
-          <button
-            onClick={handleLocalAccess}
-            data-testid="login-local-button"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-500"
-          >
-            <ShieldCheck size={16} />
-            Entrar no ambiente local
-            <ArrowRight size={16} />
-          </button>
+          {runtimeBackendMode === 'local' && (
+            <button
+              onClick={handleLocalAccess}
+              data-testid="login-local-button"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-500"
+            >
+              <ShieldCheck size={16} />
+              Entrar no ambiente local
+              <ArrowRight size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

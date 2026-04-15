@@ -7,6 +7,7 @@ import { ClientForm } from '../components/ClientForm';
 import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { SideDrawer } from '../components/SideDrawer';
 import { useFeedback } from '../components/FeedbackProvider';
+import { backendApi } from '../services/backendApi';
 
 export const Clients: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
@@ -14,6 +15,8 @@ export const Clients: React.FC = () => {
   const feedback = useFeedback();
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
+  const dataSource = useWorkspaceStore((state) => state.dataSource);
+  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
   const createClient = useWorkspaceStore((state) => state.createClient);
   const updateClient = useWorkspaceStore((state) => state.updateClient);
   const deleteClient = useWorkspaceStore((state) => state.deleteClient);
@@ -36,20 +39,39 @@ export const Clients: React.FC = () => {
     return clients.filter((client) => client.name.toLowerCase().includes(value));
   }, [clients, search]);
 
-  const submit = (values: { name: string; description?: string; owner?: string; notes?: string }) => {
+  const submit = async (values: { name: string; description?: string; owner?: string; notes?: string }) => {
     const actor = user?.email || 'local.admin@7c.local';
     setDeleteError(null);
-
-    if (editing) {
-      updateClient(editing.id, values, actor);
-      feedback.success('Cliente atualizado com sucesso.');
-      setEditing(null);
-    } else {
-      createClient(values, actor);
-      feedback.success('Cliente criado com sucesso.');
+    try {
+      if (editing) {
+        if (dataSource === 'api') {
+          await backendApi.updateClient(editing.id, {
+            name: values.name,
+            description: values.description,
+          });
+          await syncFromApi();
+        } else {
+          updateClient(editing.id, values, actor);
+        }
+        feedback.success('Cliente atualizado com sucesso.');
+        setEditing(null);
+      } else {
+        if (dataSource === 'api') {
+          await backendApi.createClient({
+            name: values.name,
+            description: values.description,
+          });
+          await syncFromApi();
+        } else {
+          createClient(values, actor);
+        }
+        feedback.success('Cliente criado com sucesso.');
+      }
+      setOpenForm(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o cliente.';
+      feedback.error(message);
     }
-
-    setOpenForm(false);
   };
 
   const handleDeleteClient = async (client: Client) => {
@@ -64,16 +86,27 @@ export const Clients: React.FC = () => {
     if (!approved) return;
 
     setDeletingId(client.id);
-    const result = deleteClient(client.id, actor);
-    setDeletingId(null);
-    if (!result.ok) {
-      setDeleteError(result.reason || 'Nao foi possivel excluir o cliente.');
-      feedback.warning(result.reason || 'Nao foi possivel excluir o cliente.');
-      return;
+    try {
+      if (dataSource === 'api') {
+        await backendApi.deleteClient(client.id);
+        await syncFromApi();
+      } else {
+        const result = deleteClient(client.id, actor);
+        if (!result.ok) {
+          setDeleteError(result.reason || 'Nao foi possivel excluir o cliente.');
+          feedback.warning(result.reason || 'Nao foi possivel excluir o cliente.');
+          return;
+        }
+      }
+      setDeleteError(null);
+      feedback.success('Cliente excluido com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel excluir o cliente.';
+      setDeleteError(message);
+      feedback.warning(message);
+    } finally {
+      setDeletingId(null);
     }
-
-    setDeleteError(null);
-    feedback.success('Cliente excluido com sucesso.');
   };
 
   return (

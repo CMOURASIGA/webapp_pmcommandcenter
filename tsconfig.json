@@ -18,5 +18,15 @@
     "jsx": "react-jsx"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "repo-github", "playwright-report", "test-results"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "repo-github",
+    "repo-sync",
+    "playwright-report",
+    "test-results",
+    "api",
+    "backend",
+    "prisma"
+  ]
 }

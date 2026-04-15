@@ -15,7 +15,8 @@ import {
   ShareAccess,
   WorkspaceSettings,
 } from '../types';
-import { workspaceSettingsFromEnv } from '../services/envService';
+import { backendMode, workspaceSettingsFromEnv } from '../services/envService';
+import { backendApi } from '../services/backendApi';
 
 interface ClientPayload {
   name: string;
@@ -68,6 +69,17 @@ interface WorkspaceState {
   artifacts: Artifact[];
   history: HistoryEvent[];
   settings: WorkspaceSettings;
+  dataSource: 'local' | 'api';
+  isSyncing: boolean;
+  setDataSource: (source: 'local' | 'api') => void;
+  setWorkspaceData: (payload: {
+    clients: Client[];
+    projects: Project[];
+    artifacts: Artifact[];
+    history: HistoryEvent[];
+  }) => void;
+  syncFromApi: () => Promise<void>;
+  clearWorkspaceData: () => void;
   createClient: (payload: ClientPayload, actor: string) => Client;
   updateClient: (id: string, payload: Partial<ClientPayload>, actor: string) => void;
   deleteClient: (id: string, actor: string) => { ok: boolean; reason?: string };
@@ -166,6 +178,45 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       artifacts: [],
       history: [],
       settings: defaultSettings,
+      dataSource: backendMode(),
+      isSyncing: false,
+
+      setDataSource: (source) => set({ dataSource: source }),
+
+      setWorkspaceData: (payload) =>
+        set({
+          clients: payload.clients,
+          projects: payload.projects,
+          artifacts: payload.artifacts,
+          history: payload.history,
+        }),
+
+      syncFromApi: async () => {
+        if (get().dataSource !== 'api') return;
+        set({ isSyncing: true });
+        try {
+          const data = await backendApi.loadWorkspaceBundle();
+          set({
+            clients: data.clients,
+            projects: data.projects,
+            artifacts: data.artifacts,
+            history: data.history,
+            isSyncing: false,
+          });
+        } catch (error) {
+          console.error('[workspace] failed to sync from api', error);
+          set({ isSyncing: false });
+          throw error;
+        }
+      },
+
+      clearWorkspaceData: () =>
+        set({
+          clients: [],
+          projects: [],
+          artifacts: [],
+          history: [],
+        }),
 
       createClient: (payload, actor) => {
         const timestamp = nowIso();
@@ -600,6 +651,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       },
 
       seedDemoData: () => {
+        if (get().dataSource === 'api') return;
         const state = get();
         if (state.clients.length > 0 || state.projects.length > 0) return;
 
@@ -655,6 +707,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         artifacts: state.artifacts,
         history: state.history,
         settings: state.settings,
+        dataSource: state.dataSource,
       }),
     }
   )
