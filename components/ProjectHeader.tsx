@@ -2,6 +2,7 @@ import React from 'react';
 import { Project } from '../types';
 import { Calendar, ExternalLink, Share2, Edit3, RefreshCcw } from 'lucide-react';
 import { useThemeStore } from '../store/useThemeStore';
+import { getHealthTone, getStatusTone } from '../services/projectUi';
 
 interface ProjectHeaderProps {
   project: Project;
@@ -9,16 +10,18 @@ interface ProjectHeaderProps {
   onShare: () => void;
 }
 
-const InfoBadge: React.FC<{ label: string; value?: string; theme: 'light' | 'dark' }> = ({ label, value, theme }) => (
+const InfoBadge: React.FC<{ label: string; value?: string; theme: 'light' | 'dark'; tone?: string }> = ({ label, value, theme, tone }) => (
   <div
+    data-testid="project-info-badge"
     className={`rounded-xl border px-3 py-2 text-xs ${
-      theme === 'light'
+      tone ||
+      (theme === 'light'
         ? 'border-brand-200/80 bg-brand-50/70'
-        : 'border-slate-700 bg-slate-800/60'
+        : 'border-slate-700 bg-slate-800/60')
     }`}
   >
-    <p className={`text-[10px] font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>{label}</p>
-    <p className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{value || '-'}</p>
+    <p data-testid="project-info-badge-label" className={`text-[10px] font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>{label}</p>
+    <p data-testid="project-info-badge-value" className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{value || '-'}</p>
   </div>
 );
 
@@ -69,13 +72,14 @@ export const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, onEdit, o
 
       <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
         <InfoBadge label="Cliente" value={project.clientName} theme={theme} />
-        <InfoBadge label="Status" value={project.status} theme={theme} />
+        <InfoBadge label="Status" value={project.status} theme={theme} tone={getStatusTone(project.status, theme)} />
         <InfoBadge label="Fase" value={project.phase} theme={theme} />
-        <InfoBadge label="Saude" value={project.health} theme={theme} />
+        <InfoBadge label="Saude" value={project.health} theme={theme} tone={getHealthTone(project.health, theme)} />
         <InfoBadge label="Responsavel" value={project.responsible} theme={theme} />
         <InfoBadge label="Metodo" value={project.methodology} theme={theme} />
         <InfoBadge label="Proximo passo" value={project.nextStep} theme={theme} />
         <div
+          data-testid="project-info-badge"
           className={`rounded-xl border px-3 py-2 text-xs ${
             theme === 'light'
               ? 'border-brand-200/80 bg-brand-50/70'
@@ -83,7 +87,7 @@ export const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, onEdit, o
           }`}
         >
           <p className={`text-[10px] font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>Ultima atualizacao</p>
-          <p className={`flex items-center gap-1 font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
+          <p data-testid="project-info-badge-value" className={`flex items-center gap-1 font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
             <Calendar size={12} />
             {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : '-'}
           </p>

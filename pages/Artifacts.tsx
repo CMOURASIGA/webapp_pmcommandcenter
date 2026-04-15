@@ -45,6 +45,7 @@ export const ArtifactsPage: React.FC = () => {
       <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
         <Search size={15} className="text-slate-400" />
         <input
+          data-testid="artifacts-project-search-input"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Buscar projeto ou cliente..."
@@ -54,7 +55,7 @@ export const ArtifactsPage: React.FC = () => {
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {cards.map(({ project, count, latestUpdate }) => (
-          <article key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+          <article data-testid="artifacts-project-card" key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-black">{project.name}</h2>
@@ -64,6 +65,7 @@ export const ArtifactsPage: React.FC = () => {
                 to={`/artifacts/project/${project.id}`}
                 title="Abrir artefatos do projeto"
                 aria-label="Abrir artefatos do projeto"
+                data-testid="artifacts-open-project-button"
                 className="rounded-lg bg-brand-600 p-2 text-white hover:bg-brand-500"
               >
                 <FolderOpen size={14} />

@@ -1,20 +1,98 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 7C Commander
 
-# Run and deploy your AI Studio app
+Plataforma de gestao de projetos orientada por fluxo:
 
-This contains everything you need to run your app locally.
+`Login > Cliente > Projeto > Agente > Artefatos`
 
-View your app in AI Studio: https://ai.studio/apps/drive/1isxRbABwdb7q9wQjM5g-kQdMk8ghJgH6
+## Stack
 
-## Run Locally
+- React + Vite + TypeScript
+- Tailwind CSS
+- Zustand (persistencia local)
 
-**Prerequisites:**  Node.js
+## Arquitetura implementada nesta base
 
+- Navegacao principal: Inicio, Clientes, Projetos, Artefatos, Agentes, Ajuda, Configuracoes.
+- Workspace do projeto com abas:
+  - Visao Geral
+  - Contexto
+  - Agentes
+  - Artefatos
+  - Historico
+  - Compartilhamento
+- Entidades principais:
+  - Cliente
+  - Projeto
+  - Artefato com versionamento (`v1`, `v2`, ...)
+  - Historico de eventos
+  - Compartilhamento por email e papel
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Versionamento de artefatos
+
+Suporte a duas estrategias:
+
+- `Sobrescrita controlada`: atualiza a versao atual.
+- `Nova versao`: cria `v+1` preservando historico.
+
+Metadados armazenados por artefato:
+
+- versao atual
+- autor de criacao
+- autor da ultima atualizacao
+- data de criacao
+- data de atualizacao
+- status (`DRAFT`, `ACTIVE`, `FINAL`, `ARCHIVED`)
+
+## Agentes externos configurados
+
+- Storyboard Intelligence Architect
+- PM AI Partner
+- BPMN Master Architect
+- Status Report Executive Architect
+
+Links configuraveis via variaveis `VITE_AGENT_*`.
+
+## Configuracao local
+
+1. Instale dependencias:
+
+```bash
+npm install
+```
+
+2. Crie seu arquivo `.env.local` a partir de `.env.example`.
+
+3. Execute o projeto:
+
+```bash
+npm run dev
+```
+
+4. Para build de validacao:
+
+```bash
+npm run build
+```
+
+## Variaveis de ambiente
+
+Arquivo base: `.env.example`
+
+Principais variaveis:
+
+- `VITE_AUTH_MODE=local|google`
+- `VITE_GOOGLE_CLIENT_ID`
+- `VITE_AGENT_SAI_URL`
+- `VITE_AGENT_PM_URL`
+- `VITE_AGENT_BPMN_URL`
+- `VITE_AGENT_STATUS_URL`
+- `VITE_ENABLE_EXTERNAL_AGENT_LINKS`
+- `VITE_ENABLE_INTERNAL_HTML_PREVIEW`
+- `VITE_ENABLE_GOOGLE_DOC_PREVIEW`
+- `VITE_ENABLE_BPMN_IMAGE_PREVIEW`
+
+## Observacao de validacao
+
+A base atual roda e valida fluxo completo em modo local (`VITE_AUTH_MODE=local`) com persistencia em `localStorage`.
+
+Integracoes Google (OAuth/Drive/Sheets) estao preparadas por configuracao de ambiente e podem ser ativadas ao fornecer credenciais e provider real.

@@ -23,6 +23,7 @@ interface ProjectFormProps {
   clients: Client[];
   initialProject?: Project | null;
   onCancel: () => void;
+  presentation?: 'inline' | 'drawer';
   onSubmit: (values: ProjectFormValues) => void;
 }
 
@@ -51,10 +52,12 @@ const toStorageDate = (value: string) => {
 };
 
 const DateInputWithPicker: React.FC<{
+  inputTestId: string;
+  buttonTestId: string;
   value: string;
   onChange: (value: string) => void;
   theme: 'light' | 'dark';
-}> = ({ value, onChange, theme }) => {
+}> = ({ inputTestId, buttonTestId, value, onChange, theme }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const openPicker = () => {
@@ -70,6 +73,7 @@ const DateInputWithPicker: React.FC<{
   return (
     <div className="relative mt-1">
       <input
+        data-testid={inputTestId}
         ref={inputRef}
         type="date"
         value={value}
@@ -77,6 +81,7 @@ const DateInputWithPicker: React.FC<{
         className={`w-full rounded-xl border bg-transparent px-3 py-2 pr-10 text-sm ${theme === 'light' ? 'border-slate-300 text-slate-900' : 'border-slate-700 text-slate-100'} [color-scheme:light] dark:[color-scheme:dark]`}
       />
       <button
+        data-testid={buttonTestId}
         type="button"
         onClick={openPicker}
         className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border p-1.5 ${theme === 'light' ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-slate-700 text-slate-200 hover:bg-slate-800'}`}
@@ -89,8 +94,9 @@ const DateInputWithPicker: React.FC<{
   );
 };
 
-export const ProjectForm: React.FC<ProjectFormProps> = ({ clients, initialProject, onCancel, onSubmit }) => {
+export const ProjectForm: React.FC<ProjectFormProps> = ({ clients, initialProject, onCancel, onSubmit, presentation = 'inline' }) => {
   const theme = useThemeStore((state) => state.theme);
+  const [submitting, setSubmitting] = useState(false);
   const [values, setValues] = useState<ProjectFormValues>({
     name: initialProject?.name || '',
     objective: initialProject?.objective || '',
@@ -113,18 +119,33 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ clients, initialProjec
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (noClient) return;
-    onSubmit({
-      ...values,
-      startDate: toStorageDate(values.startDate),
-      endDate: values.endDate ? toStorageDate(values.endDate) : '',
-    });
+    setSubmitting(true);
+    try {
+      await Promise.resolve(
+        onSubmit({
+          ...values,
+          startDate: toStorageDate(values.startDate),
+          endDate: values.endDate ? toStorageDate(values.endDate) : '',
+        })
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={submit} className={`rounded-3xl border p-5 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+    <form
+      data-testid="project-form"
+      onSubmit={submit}
+      className={`${
+        presentation === 'inline'
+          ? `rounded-3xl border p-5 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`
+          : 'space-y-4'
+      }`}
+    >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-black">{initialProject ? 'Editar projeto' : 'Novo projeto'}</h3>
         {noClient && <span className="text-xs text-amber-500">Cadastre um cliente antes de criar projeto.</span>}
@@ -188,11 +209,23 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ clients, initialProjec
 
         <label className="text-sm">
           Data de inicio
-          <DateInputWithPicker value={values.startDate} onChange={(value) => onChange('startDate', value)} theme={theme} />
+          <DateInputWithPicker
+            inputTestId="project-start-date-input"
+            buttonTestId="project-start-date-picker-button"
+            value={values.startDate}
+            onChange={(value) => onChange('startDate', value)}
+            theme={theme}
+          />
         </label>
         <label className="text-sm">
           Data final prevista
-          <DateInputWithPicker value={values.endDate || ''} onChange={(value) => onChange('endDate', value)} theme={theme} />
+          <DateInputWithPicker
+            inputTestId="project-end-date-input"
+            buttonTestId="project-end-date-picker-button"
+            value={values.endDate || ''}
+            onChange={(value) => onChange('endDate', value)}
+            theme={theme}
+          />
         </label>
 
         <label className="text-sm">
@@ -211,8 +244,15 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ clients, initialProjec
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold dark:border-slate-700">Cancelar</button>
-        <button type="submit" disabled={noClient} className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50">Salvar projeto</button>
+        <button data-testid="project-form-cancel" type="button" onClick={onCancel} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold dark:border-slate-700">Cancelar</button>
+        <button
+          data-testid="project-form-submit"
+          type="submit"
+          disabled={noClient || submitting}
+          className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting ? 'Salvando...' : 'Salvar projeto'}
+        </button>
       </div>
     </form>
   );

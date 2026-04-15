@@ -8,6 +8,7 @@ import { ArtifactList } from '../components/ArtifactList';
 import { HtmlPreviewPanel } from '../components/HtmlPreviewPanel';
 import { BpmnPreviewPanel } from '../components/BpmnPreviewPanel';
 import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components/ArtifactEditorDrawer';
+import { useFeedback } from '../components/FeedbackProvider';
 
 const getArtifactContent = (artifact?: Artifact | null) => {
   if (!artifact) return '';
@@ -19,6 +20,7 @@ export const ProjectArtifactsPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
+  const feedback = useFeedback();
 
   const projects = useWorkspaceStore((state) => state.projects);
   const artifacts = useWorkspaceStore((state) => state.artifacts);
@@ -114,22 +116,29 @@ export const ProjectArtifactsPage: React.FC = () => {
       window.open(artifact.link, '_blank', 'noopener,noreferrer');
       return;
     }
-    alert('Este icone abre o "Link externo" salvo no artefato. Edite o artefato para cadastrar uma URL.');
+    feedback.info('Este icone abre o "Link externo" salvo no artefato. Edite o artefato para cadastrar uma URL.');
   };
 
-  const removeArtifact = (artifact: Artifact) => {
-    const approved = window.confirm(`Excluir artefato "${artifact.name}"?`);
+  const removeArtifact = async (artifact: Artifact) => {
+    const approved = await feedback.confirm({
+      title: 'Excluir artefato',
+      message: `Deseja excluir o artefato "${artifact.name}"?`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
     if (!approved) return;
 
     const removed = deleteArtifact(artifact.id, actor);
     if (!removed) {
-      alert('Nao foi possivel excluir o artefato.');
+      feedback.error('Nao foi possivel excluir o artefato.');
       return;
     }
 
     if (selected?.id === artifact.id) {
       setSelected(null);
     }
+    feedback.success('Artefato excluido com sucesso.');
   };
 
   const submitDrawer = (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
@@ -150,6 +159,7 @@ export const ProjectArtifactsPage: React.FC = () => {
       setSelected(created);
       setFilter(values.scope);
       setDrawerOpen(false);
+      feedback.success('Artefato criado com sucesso.');
       return;
     }
 
@@ -168,7 +178,7 @@ export const ProjectArtifactsPage: React.FC = () => {
     });
 
     if (!metaUpdated) {
-      alert('Nao foi possivel atualizar o artefato.');
+      feedback.error('Nao foi possivel atualizar o artefato.');
       return;
     }
 
@@ -183,6 +193,7 @@ export const ProjectArtifactsPage: React.FC = () => {
       });
       if (updated) setSelected(updated);
       setDrawerOpen(false);
+      feedback.success('Nova versao criada com sucesso.');
       return;
     }
 
@@ -196,8 +207,10 @@ export const ProjectArtifactsPage: React.FC = () => {
         link: values.link || undefined,
       });
       if (updated) setSelected(updated);
+      feedback.success('Artefato atualizado com sucesso.');
     } else {
       setSelected(metaUpdated);
+      feedback.success('Dados do artefato atualizados com sucesso.');
     }
 
     setDrawerOpen(false);
@@ -236,6 +249,7 @@ export const ProjectArtifactsPage: React.FC = () => {
         {(['ALL', 'CONTEXT', 'SAI', 'PM', 'BPMN', 'STATUS', 'OTHER'] as const).map((item) => (
           <button
             key={item}
+            data-testid={`project-artifacts-filter-${item}`}
             onClick={() => setFilter(item)}
             className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
               filter === item
@@ -248,7 +262,7 @@ export const ProjectArtifactsPage: React.FC = () => {
             {item}
           </button>
         ))}
-        <button onClick={openCreateDrawer} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">
+        <button data-testid="project-artifacts-new-button" onClick={openCreateDrawer} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">
           Novo artefato
         </button>
       </div>

@@ -1,6 +1,6 @@
 {
-  "name": "PM Command Center",
-  "description": "A comprehensive project management cockpit featuring AI agents for planning, BPMN modeling, UI design, risk analysis, and stakeholder communication.",
+  "name": "7C Commander",
+  "description": "Plataforma de gestao de projetos orientada por cliente, projeto, agentes e artefatos com versionamento.",
   "requestFramePermissions": [
     "camera",
     "microphone"

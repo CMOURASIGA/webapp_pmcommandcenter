@@ -15,6 +15,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { AuthUser } from './types';
+import { FeedbackProvider } from './components/FeedbackProvider';
 
 const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
@@ -34,27 +35,29 @@ const App: React.FC = () => {
     login(authenticatedUser);
   };
 
-  if (!user) {
-    return <Login onAuthenticated={handleAuthenticated} />;
-  }
-
   return (
-    <Router>
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectWorkspace />} />
-          <Route path="/artifacts" element={<ArtifactsPage />} />
-          <Route path="/artifacts/project/:id" element={<ProjectArtifactsPage />} />
-          <Route path="/agents" element={<AgentsLab />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppShell>
-    </Router>
+    <FeedbackProvider>
+      {!user ? (
+        <Login onAuthenticated={handleAuthenticated} />
+      ) : (
+        <Router>
+          <AppShell>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:id" element={<ProjectWorkspace />} />
+              <Route path="/artifacts" element={<ArtifactsPage />} />
+              <Route path="/artifacts/project/:id" element={<ProjectArtifactsPage />} />
+              <Route path="/agents" element={<AgentsLab />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppShell>
+        </Router>
+      )}
+    </FeedbackProvider>
   );
 };
 

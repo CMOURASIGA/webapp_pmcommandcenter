@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, FolderOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
@@ -6,6 +6,9 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { Project, ProjectHealth } from '../types';
 import { ProjectForm } from '../components/ProjectForm';
+import { SideDrawer } from '../components/SideDrawer';
+import { useFeedback } from '../components/FeedbackProvider';
+import { getHealthTone, getStatusTone } from '../services/projectUi';
 
 const splitStakeholders = (raw: string) =>
   raw
@@ -16,6 +19,7 @@ const splitStakeholders = (raw: string) =>
 export const Projects: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
+  const feedback = useFeedback();
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
   const createProject = useWorkspaceStore((state) => state.createProject);
@@ -26,6 +30,13 @@ export const Projects: React.FC = () => {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [viewing, setViewing] = useState<Project | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setLoading(false), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const filteredProjects = useMemo(() => {
     const value = search.toLowerCase();
@@ -60,25 +71,36 @@ export const Projects: React.FC = () => {
 
     if (editing) {
       updateProject(editing.id, payload, actor);
+      feedback.success('Projeto atualizado com sucesso.');
       setEditing(null);
     } else {
       createProject(payload, actor);
+      feedback.success('Projeto criado com sucesso.');
     }
 
     setOpenForm(false);
   };
 
-  const handleDeleteProject = (project: Project) => {
+  const handleDeleteProject = async (project: Project) => {
     const actor = user?.email || 'local.admin@7c.local';
-    const approved = window.confirm(`Excluir projeto "${project.name}"?`);
+    const approved = await feedback.confirm({
+      title: 'Excluir projeto',
+      message: `Deseja excluir o projeto "${project.name}"?`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
     if (!approved) return;
 
+    setDeletingId(project.id);
     const removed = deleteProject(project.id, actor);
+    setDeletingId(null);
     if (!removed) {
-      alert('Nao foi possivel excluir o projeto.');
+      feedback.error('Nao foi possivel excluir o projeto.');
       return;
     }
 
+    feedback.success('Projeto excluido com sucesso.');
     if (viewing?.id === project.id) {
       setViewing(null);
     }
@@ -92,6 +114,7 @@ export const Projects: React.FC = () => {
           <h1 className="text-3xl font-black">Catalogo operacional</h1>
         </div>
         <button
+          data-testid="projects-new-button"
           onClick={() => {
             setEditing(null);
             setOpenForm(true);
@@ -102,8 +125,17 @@ export const Projects: React.FC = () => {
         </button>
       </header>
 
-      {openForm && (
+      <SideDrawer
+        open={openForm}
+        title={editing ? 'Editar projeto' : 'Novo projeto'}
+        subtitle="Use os campos abaixo para manter o cadastro do projeto sem perder o contexto da listagem."
+        onClose={() => {
+          setOpenForm(false);
+          setEditing(null);
+        }}
+      >
         <ProjectForm
+          presentation="drawer"
           clients={clients}
           initialProject={editing}
           onCancel={() => {
@@ -112,11 +144,12 @@ export const Projects: React.FC = () => {
           }}
           onSubmit={submit}
         />
-      )}
+      </SideDrawer>
 
       <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
         <Search size={15} className="text-slate-400" />
         <input
+          data-testid="projects-search-input"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Buscar por nome, objetivo ou cliente..."
@@ -124,9 +157,19 @@ export const Projects: React.FC = () => {
         />
       </div>
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {filteredProjects.map((project) => (
-          <article key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+      {loading ? (
+        <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className={`h-56 animate-pulse rounded-2xl border ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}
+            />
+          ))}
+        </section>
+      ) : (
+        <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {filteredProjects.map((project) => (
+          <article data-testid="project-card" key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-black">{project.name}</h2>
@@ -136,6 +179,7 @@ export const Projects: React.FC = () => {
                 <button
                   title="Visualizar projeto"
                   aria-label="Visualizar projeto"
+                  data-testid="project-view-button"
                   onClick={() => setViewing(project)}
                   className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
                 >
@@ -144,6 +188,7 @@ export const Projects: React.FC = () => {
                 <button
                   title="Editar projeto"
                   aria-label="Editar projeto"
+                  data-testid="project-edit-button"
                   onClick={() => {
                     setEditing(project);
                     setOpenForm(true);
@@ -155,8 +200,10 @@ export const Projects: React.FC = () => {
                 <button
                   title="Excluir projeto"
                   aria-label="Excluir projeto"
+                  data-testid="project-delete-button"
+                  disabled={deletingId === project.id}
                   onClick={() => handleDeleteProject(project)}
-                  className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 dark:border-red-900/40"
+                  className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 disabled:opacity-50 dark:border-red-900/40"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -164,6 +211,7 @@ export const Projects: React.FC = () => {
                   to={`/projects/${project.id}`}
                   title="Abrir workspace"
                   aria-label="Abrir workspace"
+                  data-testid="project-open-workspace-button"
                   className="rounded-lg bg-brand-600 p-2 text-white hover:bg-brand-500"
                 >
                   <FolderOpen size={14} />
@@ -178,7 +226,9 @@ export const Projects: React.FC = () => {
               </div>
               <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
                 <p className="font-semibold text-slate-500">Status</p>
-                <p>{project.status}</p>
+                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(project.status, theme)}`}>
+                  {project.status}
+                </span>
               </div>
               <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
                 <p className="font-semibold text-slate-500">Fase</p>
@@ -186,7 +236,9 @@ export const Projects: React.FC = () => {
               </div>
               <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
                 <p className="font-semibold text-slate-500">Saude</p>
-                <p>{project.health || '-'}</p>
+                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getHealthTone(project.health, theme)}`}>
+                  {project.health || '-'}
+                </span>
               </div>
             </div>
 
@@ -195,8 +247,9 @@ export const Projects: React.FC = () => {
               <p>Atualizado: {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : '-'}</p>
             </div>
           </article>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
 
       {filteredProjects.length === 0 && (
         <div className={`rounded-2xl border p-6 text-center text-sm ${theme === 'light' ? 'border-slate-200 bg-white text-slate-600' : 'border-slate-800 bg-slate-900 text-slate-300'}`}>

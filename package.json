@@ -1,12 +1,19 @@
 {
-  "name": "pm-command-center",
+  "name": "7c-commander",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e:setup": "node scripts/setup-playwright.mjs",
+    "test:e2e:setup:linux-deps": "node scripts/setup-playwright.mjs --with-deps",
+    "pretest:e2e": "npm run test:e2e:setup",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
@@ -20,6 +27,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

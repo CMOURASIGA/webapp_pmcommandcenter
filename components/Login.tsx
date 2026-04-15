@@ -1,102 +1,163 @@
-﻿
-import React, { useState } from 'react';
-import { ShieldCheck, Zap, ChevronRight, Cpu, LayoutDashboard, Globe } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { AuthUser } from '../types';
+import { authMode } from '../services/envService';
 import { useThemeStore } from '../store/useThemeStore';
+import { useWorkspaceStore } from '../store/useWorkspaceStore';
 
 interface LoginProps {
-  onEnter: () => void;
+  onAuthenticated: (user: AuthUser) => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onEnter }) => {
-  const { theme } = useThemeStore();
-  const [isStarting, setIsStarting] = useState(false);
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: Record<string, unknown>) => void;
+          renderButton: (element: HTMLElement, options: Record<string, unknown>) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
 
-  const handleStart = () => {
-    setIsStarting(true);
-    setTimeout(() => {
-      onEnter();
-    }, 800);
+const decodeJwt = (token: string): Record<string, unknown> | null => {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
+
+export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
+  const theme = useThemeStore((state) => state.theme);
+  const settings = useWorkspaceStore((state) => state.settings);
+  const [googleReady, setGoogleReady] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const runtimeAuthMode = useMemo(() => authMode(), []);
+
+  useEffect(() => {
+    if (runtimeAuthMode !== 'google') return;
+    if (!settings.googleClientId) {
+      setGoogleError('VITE_GOOGLE_CLIENT_ID nao configurado. Use modo local para validar.');
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      const google = window.google;
+      if (!google) {
+        setGoogleError('Google Identity nao foi carregado.');
+        return;
+      }
+
+      const handleCredential = (response: { credential: string }) => {
+        const decoded = decodeJwt(response.credential);
+        if (!decoded) {
+          setGoogleError('Falha ao ler credencial do Google.');
+          return;
+        }
+
+        onAuthenticated({
+          email: String(decoded.email || 'google.user@local'),
+          name: String(decoded.name || 'Google User'),
+          picture: decoded.picture ? String(decoded.picture) : undefined,
+          provider: 'google',
+        });
+      };
+
+      google.accounts.id.initialize({
+        client_id: settings.googleClientId,
+        callback: handleCredential,
+      });
+
+      const target = document.getElementById('google-login-button');
+      if (target) {
+        google.accounts.id.renderButton(target, {
+          theme: theme === 'light' ? 'outline' : 'filled_black',
+          size: 'large',
+          shape: 'pill',
+          text: 'signin_with',
+          width: 290,
+        });
+      }
+
+      setGoogleReady(true);
+      google.accounts.id.prompt();
+    };
+
+    script.onerror = () => setGoogleError('Nao foi possivel carregar o script de autenticacao do Google.');
+    document.body.appendChild(script);
+
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, [onAuthenticated, runtimeAuthMode, settings.googleClientId, theme]);
+
+  const handleLocalAccess = () => {
+    onAuthenticated({
+      email: 'local.admin@7c.local',
+      name: 'Admin Local',
+      provider: 'local',
+    });
   };
 
-  const logoUrl = 'https://i.imgur.com/GUOMwkI.png';
-
   return (
-    <div className={`fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 transition-all duration-700 ${
-      isStarting ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100 scale-100'
-    } ${theme === 'light' ? 'bg-slate-50' : 'bg-slate-950'}`}>
-      
-      {/* Background Decorativo - Apenas Desktop/Tablet */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 hidden md:block">
-        <div className="absolute top-10 left-10 flex flex-col gap-2 font-mono text-[10px] text-brand-500/40 uppercase tracking-widest">
-          <span>LAT: -23.5505</span>
-          <span>LNG: -46.6333</span>
-          <span>SYS_STATUS: READY</span>
-        </div>
-        <div className="absolute bottom-10 right-10 flex flex-col gap-2 font-mono text-[10px] text-blue-500/40 uppercase tracking-widest text-right">
-          <span>COCKPIT_V: 1.0.4</span>
-          <span>ENCRYPT: AES-256</span>
-          <span>CONNECTION: STABLE</span>
-        </div>
-      </div>
-
-      <div className="max-w-md w-full text-center space-y-12 relative z-10">
-        {/* Logo & Branding */}
-        <div className="space-y-6 animate-in fade-in zoom-in duration-1000">
-          <div className="relative inline-block">
-             <div className="absolute inset-0 bg-brand-500/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
-             <img src={logoUrl} alt="Logo" className="h-24 md:h-32 w-auto mx-auto object-contain relative z-10" />
-          </div>
-          <div className="space-y-2">
-            <h1 className={`text-4xl md:text-5xl font-black tracking-[0.08em] uppercase leading-none ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-              PM COMMAND <span className="text-brand-500">CENTER</span>
-            </h1>
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-slate-500 opacity-80">
-              Operative Intelligence System
-            </p>
-          </div>
-        </div>
-
-        {/* Features Grid - Minimalista para Mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-          {[
-            { icon: ShieldCheck, label: 'Secure' },
-            { icon: Zap, label: 'Fast' },
-            { icon: Globe, label: 'Global' }
-          ].map((item, i) => (
-            <div key={i} className={`p-4 rounded-2xl border flex flex-col items-center gap-2 ${
-              theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900/50 border-slate-800'
-            }`}>
-              <item.icon className="text-brand-500" size={18} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Action Button */}
-        <div className="pt-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
-          <button 
-            onClick={handleStart}
-            className="group w-full md:w-auto bg-brand-600 hover:bg-brand-500 text-white px-10 py-5 rounded-[24px] font-black text-sm uppercase tracking-[0.2em] transition-all shadow-2xl shadow-brand-600/30 active:scale-95 flex items-center justify-center gap-3 mx-auto"
-          >
-            Iniciar Operação
-            <ChevronRight className="group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} />
-          </button>
-          
-          <p className="mt-8 text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">
-            Acesso autorizado para gestores de projetos
+    <div className={`flex min-h-screen items-center justify-center px-4 ${theme === 'light' ? 'bg-slate-50' : 'bg-slate-950'}`}>
+      <div className={`w-full max-w-md rounded-3xl border p-8 shadow-2xl ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+        <div className="mb-8 text-center">
+          <img src={settings.brandLogoUrl} alt="7C Commander" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover" />
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-500">7C Commander</p>
+          <h1 className={`mt-2 text-2xl font-black ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
+            Plataforma de Gestao por Projeto
+          </h1>
+          <p className={`mt-2 text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+            Login principal com Google e fallback local para validacao do desenvolvimento.
           </p>
         </div>
-      </div>
 
-      {/* Footer Mobile Friendly */}
-      <footer className="absolute bottom-8 text-center w-full px-6 md:px-0">
-        <div className={`h-1 w-24 mx-auto rounded-full mb-4 ${theme === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`}></div>
-        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-40">
-          © 2024 PM AI Partner • High-Performance Cockpit
-        </p>
-      </footer>
+        <div className="space-y-4">
+          {runtimeAuthMode === 'google' ? (
+            <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/40'}`}>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-brand-500">Acesso Google</p>
+              <div id="google-login-button" className="flex justify-center" />
+              {!googleReady && !googleError && (
+                <p className={`mt-2 text-center text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Carregando autenticacao Google...
+                </p>
+              )}
+              {googleError && (
+                <p className="mt-2 flex items-center justify-center gap-1 text-xs text-amber-500">
+                  <AlertCircle size={14} />
+                  {googleError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className={`rounded-2xl border p-4 text-sm ${theme === 'light' ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-700 bg-slate-800/40 text-slate-300'}`}>
+              Modo de autenticacao ativo: <strong>local</strong> (`VITE_AUTH_MODE=local`).
+            </div>
+          )}
+
+          <button
+            onClick={handleLocalAccess}
+            data-testid="login-local-button"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-500"
+          >
+            <ShieldCheck size={16} />
+            Entrar no ambiente local
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
-
-

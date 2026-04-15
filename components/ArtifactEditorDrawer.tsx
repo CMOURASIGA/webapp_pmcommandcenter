@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ClipboardPaste, X } from 'lucide-react';
 import { AgentScope, Artifact, ArtifactFormat, ArtifactStatus, ArtifactType, CoreAgentId } from '../types';
 import { useThemeStore } from '../store/useThemeStore';
+import { useFeedback } from './FeedbackProvider';
 
 export interface ArtifactEditorValues {
   name: string;
@@ -90,6 +91,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
   onSubmit,
 }) => {
   const theme = useThemeStore((state) => state.theme);
+  const feedback = useFeedback();
   const [values, setValues] = useState<ArtifactEditorValues>(initialValues);
 
   useEffect(() => {
@@ -111,12 +113,12 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
       if (!text) return;
       setValues((current) => ({ ...current, content: text }));
     } catch {
-      alert('Nao foi possivel ler a area de transferencia.');
+      feedback.error('Nao foi possivel ler a area de transferencia.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div data-testid="artifact-editor-drawer" className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
       <aside
         className={`absolute right-0 top-0 h-full w-full max-w-3xl overflow-y-auto border-l p-4 md:p-6 ${
@@ -145,6 +147,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm md:col-span-2">
               Nome
               <input
+                data-testid="artifact-drawer-name"
                 required
                 value={values.name}
                 onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
@@ -155,6 +158,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm">
               Tipo
               <select
+                data-testid="artifact-drawer-type"
                 value={values.type}
                 onChange={(event) => setValues((current) => ({ ...current, type: event.target.value as ArtifactType }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -170,6 +174,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm">
               Escopo
               <select
+                data-testid="artifact-drawer-scope"
                 value={values.scope}
                 onChange={(event) => setValues((current) => ({ ...current, scope: event.target.value as AgentScope }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -185,6 +190,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm">
               Formato
               <select
+                data-testid="artifact-drawer-format"
                 value={values.format}
                 onChange={(event) => setValues((current) => ({ ...current, format: event.target.value as ArtifactFormat }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -200,6 +206,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm">
               Status
               <select
+                data-testid="artifact-drawer-status"
                 value={values.status}
                 onChange={(event) => setValues((current) => ({ ...current, status: event.target.value as ArtifactStatus }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -215,6 +222,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm">
               Agente (opcional)
               <select
+                data-testid="artifact-drawer-agent"
                 value={values.agentId || ''}
                 onChange={(event) => setValues((current) => ({ ...current, agentId: (event.target.value || undefined) as CoreAgentId | undefined }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -231,6 +239,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm md:col-span-2">
               Link externo (opcional)
               <input
+                data-testid="artifact-drawer-link"
                 placeholder="https://..."
                 value={values.link}
                 onChange={(event) => setValues((current) => ({ ...current, link: event.target.value }))}
@@ -241,6 +250,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm md:col-span-2">
               Conteudo
               <textarea
+                data-testid="artifact-drawer-content"
                 required
                 value={values.content}
                 onChange={(event) => setValues((current) => ({ ...current, content: event.target.value }))}
@@ -251,6 +261,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             <label className="text-sm md:col-span-2">
               Observacao da versao
               <input
+                data-testid="artifact-drawer-note"
                 value={values.note}
                 onChange={(event) => setValues((current) => ({ ...current, note: event.target.value }))}
                 className={`mt-1 w-full rounded-xl border bg-transparent px-3 py-2 text-sm ${theme === 'light' ? 'border-slate-300' : 'border-slate-700'}`}
@@ -260,6 +271,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
 
           <footer className="flex flex-wrap justify-end gap-2">
             <button
+              data-testid="artifact-drawer-paste"
               type="button"
               onClick={pasteClipboard}
               className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ${
@@ -270,6 +282,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
               Colar conteudo
             </button>
             <button
+              data-testid="artifact-drawer-cancel"
               type="button"
               onClick={onClose}
               className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
@@ -278,7 +291,7 @@ export const ArtifactEditorDrawer: React.FC<ArtifactEditorDrawerProps> = ({
             >
               Cancelar
             </button>
-            <button type="submit" className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500">
+            <button data-testid="artifact-drawer-submit" type="submit" className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500">
               {submitLabel}
             </button>
           </footer>

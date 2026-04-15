@@ -14,6 +14,8 @@ import { QuickActionsBar } from '../components/QuickActionsBar';
 import { ShareProjectModal } from '../components/ShareProjectModal';
 import { Artifact, CoreAgentId, Project } from '../types';
 import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components/ArtifactEditorDrawer';
+import { useFeedback } from '../components/FeedbackProvider';
+import { SideDrawer } from '../components/SideDrawer';
 
 const tabs = [
   { id: 'overview', label: 'Visao Geral' },
@@ -106,6 +108,7 @@ export const ProjectWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
+  const feedback = useFeedback();
 
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
@@ -157,13 +160,13 @@ export const ProjectWorkspace: React.FC = () => {
 
   const copyContext = async () => {
     await navigator.clipboard.writeText(contextText);
-    alert('Contexto copiado para area de transferencia.');
+    feedback.success('Contexto copiado para area de transferencia.');
   };
 
   const openAgent = (agentId: CoreAgentId) => {
     const url = settings.agentLinks[agentId];
     if (!url) {
-      alert('Link do agente nao configurado.');
+      feedback.warning('Link do agente nao configurado.');
       return;
     }
 
@@ -176,7 +179,7 @@ export const ProjectWorkspace: React.FC = () => {
       return;
     }
 
-    alert('Este icone abre o "Link externo" salvo no artefato. Edite o artefato para cadastrar uma URL.');
+    feedback.info('Este icone abre o "Link externo" salvo no artefato. Edite o artefato para cadastrar uma URL.');
   };
 
   const resolveTypeFromScope = (scope: Artifact['scope']): Artifact['type'] => {
@@ -232,19 +235,26 @@ export const ProjectWorkspace: React.FC = () => {
     setArtifactDrawerOpen(true);
   };
 
-  const handleDeleteArtifact = (artifact: Artifact) => {
-    const approved = window.confirm(`Excluir artefato "${artifact.name}"?`);
+  const handleDeleteArtifact = async (artifact: Artifact) => {
+    const approved = await feedback.confirm({
+      title: 'Excluir artefato',
+      message: `Deseja excluir o artefato "${artifact.name}"?`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
     if (!approved) return;
 
     const removed = deleteArtifact(artifact.id, actor);
     if (!removed) {
-      alert('Nao foi possivel excluir o artefato.');
+      feedback.error('Nao foi possivel excluir o artefato.');
       return;
     }
 
     if (selectedArtifact?.id === artifact.id) {
       setSelectedArtifact(null);
     }
+    feedback.success('Artefato excluido com sucesso.');
   };
 
   const submitArtifactFromDrawer = (values: ReturnType<typeof buildArtifactEditorDefaults>) => {
@@ -266,6 +276,7 @@ export const ProjectWorkspace: React.FC = () => {
       setArtifactScopeFilter(values.scope);
       setActiveTab('artifacts');
       setArtifactDrawerOpen(false);
+      feedback.success('Artefato criado com sucesso.');
       return;
     }
 
@@ -284,7 +295,7 @@ export const ProjectWorkspace: React.FC = () => {
     });
 
     if (!metaUpdated) {
-      alert('Nao foi possivel atualizar o artefato.');
+      feedback.error('Nao foi possivel atualizar o artefato.');
       return;
     }
 
@@ -299,6 +310,7 @@ export const ProjectWorkspace: React.FC = () => {
       });
       if (updated) setSelectedArtifact(updated);
       setArtifactDrawerOpen(false);
+      feedback.success('Nova versao criada com sucesso.');
       return;
     }
 
@@ -312,8 +324,10 @@ export const ProjectWorkspace: React.FC = () => {
         link: values.link || undefined,
       });
       if (updated) setSelectedArtifact(updated);
+      feedback.success('Artefato atualizado com sucesso.');
     } else {
       setSelectedArtifact(metaUpdated);
+      feedback.success('Dados do artefato atualizados com sucesso.');
     }
 
     setArtifactDrawerOpen(false);
@@ -370,6 +384,7 @@ export const ProjectWorkspace: React.FC = () => {
       },
       actor
     );
+    feedback.success('Projeto atualizado com sucesso.');
     setEditingProject(false);
   };
 
@@ -393,7 +408,7 @@ export const ProjectWorkspace: React.FC = () => {
           if (project.folderRef?.projectFolderUrl) {
             window.open(project.folderRef.projectFolderUrl, '_blank', 'noopener,noreferrer');
           } else {
-            alert('Link de pasta nao disponivel.');
+            feedback.warning('Link de pasta nao disponivel.');
           }
         }}
         onShare={() => setShareOpen(true)}
@@ -403,6 +418,7 @@ export const ProjectWorkspace: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           {tabs.map((tab) => (
             <button
+              data-testid={`workspace-tab-${tab.id}`}
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`rounded-xl px-3 py-2 text-xs font-semibold ${
@@ -419,14 +435,20 @@ export const ProjectWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {editingProject && (
+      <SideDrawer
+        open={editingProject}
+        title="Editar projeto"
+        subtitle="Atualize os dados sem perder o contexto do workspace."
+        onClose={() => setEditingProject(false)}
+      >
         <ProjectForm
+          presentation="drawer"
           clients={clients}
           initialProject={project}
           onCancel={() => setEditingProject(false)}
           onSubmit={updateFromForm}
         />
-      )}
+      </SideDrawer>
 
       {activeTab === 'overview' && (
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -434,21 +456,41 @@ export const ProjectWorkspace: React.FC = () => {
             <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
               <h2 className="text-lg font-black">Visao geral do projeto</h2>
               <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                <div
+                  data-testid="workspace-overview-info-card"
+                  className={`rounded-xl border p-3 ${
+                    theme === 'light' ? 'border-brand-200/70 bg-brand-50/70' : 'border-slate-700 bg-slate-800/70'
+                  }`}
+                >
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Objetivo</p>
-                  <p>{project.objective}</p>
+                  <p data-testid="workspace-overview-info-card-value" className={theme === 'light' ? 'text-slate-900' : 'text-slate-100'}>{project.objective}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                <div
+                  data-testid="workspace-overview-info-card"
+                  className={`rounded-xl border p-3 ${
+                    theme === 'light' ? 'border-brand-200/70 bg-brand-50/70' : 'border-slate-700 bg-slate-800/70'
+                  }`}
+                >
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descricao</p>
-                  <p>{project.description || '-'}</p>
+                  <p data-testid="workspace-overview-info-card-value" className={theme === 'light' ? 'text-slate-900' : 'text-slate-100'}>{project.description || '-'}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                <div
+                  data-testid="workspace-overview-info-card"
+                  className={`rounded-xl border p-3 ${
+                    theme === 'light' ? 'border-brand-200/70 bg-brand-50/70' : 'border-slate-700 bg-slate-800/70'
+                  }`}
+                >
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Proximos passos</p>
-                  <p>{project.nextStep || '-'}</p>
+                  <p data-testid="workspace-overview-info-card-value" className={theme === 'light' ? 'text-slate-900' : 'text-slate-100'}>{project.nextStep || '-'}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700">
+                <div
+                  data-testid="workspace-overview-info-card"
+                  className={`rounded-xl border p-3 ${
+                    theme === 'light' ? 'border-brand-200/70 bg-brand-50/70' : 'border-slate-700 bg-slate-800/70'
+                  }`}
+                >
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Riscos e decisoes</p>
-                  <p>Registre na aba Historico e artefatos de status.</p>
+                  <p data-testid="workspace-overview-info-card-value" className={theme === 'light' ? 'text-slate-900' : 'text-slate-100'}>Registre na aba Historico e artefatos de status.</p>
                 </div>
               </div>
             </div>
@@ -530,7 +572,7 @@ export const ProjectWorkspace: React.FC = () => {
                 {item}
               </button>
             ))}
-            <button onClick={() => openCreateArtifactDrawer()} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">
+            <button data-testid="workspace-new-artifact-button" onClick={() => openCreateArtifactDrawer()} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">
               Novo artefato
             </button>
           </div>

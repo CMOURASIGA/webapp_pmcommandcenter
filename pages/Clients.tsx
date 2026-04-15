@@ -1,14 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { Client } from '../types';
 import { ClientForm } from '../components/ClientForm';
 import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { SideDrawer } from '../components/SideDrawer';
+import { useFeedback } from '../components/FeedbackProvider';
 
 export const Clients: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
+  const feedback = useFeedback();
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
   const createClient = useWorkspaceStore((state) => state.createClient);
@@ -19,6 +22,14 @@ export const Clients: React.FC = () => {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [viewing, setViewing] = useState<Client | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setLoading(false), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const filtered = useMemo(() => {
     const value = search.toLowerCase();
@@ -27,26 +38,42 @@ export const Clients: React.FC = () => {
 
   const submit = (values: { name: string; description?: string; owner?: string; notes?: string }) => {
     const actor = user?.email || 'local.admin@7c.local';
+    setDeleteError(null);
 
     if (editing) {
       updateClient(editing.id, values, actor);
+      feedback.success('Cliente atualizado com sucesso.');
       setEditing(null);
     } else {
       createClient(values, actor);
+      feedback.success('Cliente criado com sucesso.');
     }
 
     setOpenForm(false);
   };
 
-  const handleDeleteClient = (client: Client) => {
+  const handleDeleteClient = async (client: Client) => {
     const actor = user?.email || 'local.admin@7c.local';
-    const approved = window.confirm(`Excluir cliente "${client.name}"?`);
+    const approved = await feedback.confirm({
+      title: 'Excluir cliente',
+      message: `Deseja excluir o cliente "${client.name}"?`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
     if (!approved) return;
 
+    setDeletingId(client.id);
     const result = deleteClient(client.id, actor);
+    setDeletingId(null);
     if (!result.ok) {
-      alert(result.reason || 'Nao foi possivel excluir o cliente.');
+      setDeleteError(result.reason || 'Nao foi possivel excluir o cliente.');
+      feedback.warning(result.reason || 'Nao foi possivel excluir o cliente.');
+      return;
     }
+
+    setDeleteError(null);
+    feedback.success('Cliente excluido com sucesso.');
   };
 
   return (
@@ -57,6 +84,7 @@ export const Clients: React.FC = () => {
           <h1 className="text-3xl font-black">Gestao de clientes</h1>
         </div>
         <button
+          data-testid="clients-new-button"
           onClick={() => {
             setEditing(null);
             setOpenForm(true);
@@ -67,8 +95,30 @@ export const Clients: React.FC = () => {
         </button>
       </header>
 
-      {openForm && (
+      {deleteError && (
+        <div
+          data-testid="clients-delete-error-banner"
+          className={`rounded-2xl border p-3 text-sm ${
+            theme === 'light'
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-amber-900/50 bg-amber-950/40 text-amber-200'
+          }`}
+        >
+          {deleteError}
+        </div>
+      )}
+
+      <SideDrawer
+        open={openForm}
+        title={editing ? 'Editar cliente' : 'Novo cliente'}
+        subtitle="Preencha os dados e salve para atualizar a base de clientes."
+        onClose={() => {
+          setOpenForm(false);
+          setEditing(null);
+        }}
+      >
         <ClientForm
+          presentation="drawer"
           initialClient={editing}
           onCancel={() => {
             setOpenForm(false);
@@ -76,11 +126,12 @@ export const Clients: React.FC = () => {
           }}
           onSubmit={submit}
         />
-      )}
+      </SideDrawer>
 
       <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
         <Search size={15} className="text-slate-400" />
         <input
+          data-testid="clients-search-input"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Buscar cliente..."
@@ -88,11 +139,21 @@ export const Clients: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {filtered.map((client) => {
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className={`h-44 animate-pulse rounded-2xl border ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {filtered.map((client) => {
           const projectCount = projects.filter((project) => project.clientId === client.id).length;
           return (
-            <article key={client.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+            <article data-testid="client-card" key={client.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black">{client.name}</h2>
@@ -102,6 +163,7 @@ export const Clients: React.FC = () => {
                   <button
                     title="Visualizar cliente"
                     aria-label="Visualizar cliente"
+                    data-testid="client-view-button"
                     onClick={() => setViewing(client)}
                     className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
                   >
@@ -110,6 +172,7 @@ export const Clients: React.FC = () => {
                   <button
                     title="Editar cliente"
                     aria-label="Editar cliente"
+                    data-testid="client-edit-button"
                     onClick={() => {
                       setEditing(client);
                       setOpenForm(true);
@@ -121,8 +184,10 @@ export const Clients: React.FC = () => {
                   <button
                     title="Excluir cliente"
                     aria-label="Excluir cliente"
+                    data-testid="client-delete-button"
+                    disabled={deletingId === client.id}
                     onClick={() => handleDeleteClient(client)}
-                    className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 dark:border-red-900/40"
+                    className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 disabled:opacity-50 dark:border-red-900/40"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -143,8 +208,9 @@ export const Clients: React.FC = () => {
               {client.notes && <p className="mt-3 text-xs text-slate-500">Observacoes: {client.notes}</p>}
             </article>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div className={`rounded-2xl border p-6 text-center text-sm ${theme === 'light' ? 'border-slate-200 bg-white text-slate-600' : 'border-slate-800 bg-slate-900 text-slate-300'}`}>
