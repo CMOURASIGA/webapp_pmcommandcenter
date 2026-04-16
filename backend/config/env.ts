@@ -25,7 +25,11 @@ export const env = {
   frontendUrl: readEnv('FRONTEND_URL', 'http://localhost:5173')!,
   googleClientId: readEnv('GOOGLE_CLIENT_ID'),
   googleClientSecret: readEnv('GOOGLE_CLIENT_SECRET'),
-  googleRedirectUri: readEnv('GOOGLE_REDIRECT_URI'),
+  googleRedirectUri:
+    readEnv('GOOGLE_REDIRECT_URI') ||
+    (readEnv('NODE_ENV', 'development') === 'production'
+      ? undefined
+      : `${readEnv('APP_BASE_URL', 'http://localhost:3000')!.replace(/\/$/, '')}/api/auth/google/callback`),
   sessionSecret: readEnv('SESSION_SECRET'),
   cookieDomain: readEnv('COOKIE_DOMAIN'),
   cookieSecure: toBoolean(readEnv('COOKIE_SECURE'), false),
@@ -37,6 +41,10 @@ export const env = {
 export const ensureAuthEnv = () => {
   requireEnv('GOOGLE_CLIENT_ID');
   requireEnv('GOOGLE_CLIENT_SECRET');
-  requireEnv('GOOGLE_REDIRECT_URI');
-  requireEnv('SESSION_SECRET');
+  if (!env.googleRedirectUri) {
+    throw new Error('Missing required environment variable: GOOGLE_REDIRECT_URI');
+  }
+  if (env.nodeEnv === 'production') {
+    requireEnv('SESSION_SECRET');
+  }
 };

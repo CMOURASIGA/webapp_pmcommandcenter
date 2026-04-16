@@ -7,6 +7,7 @@ import {
   upsertUserFromGoogle,
 } from '../../../backend/auth/google-auth-service';
 import { createSession, setSessionCookie } from '../../../backend/auth/session-service';
+import { env } from '../../../backend/config/env';
 import { ensureUserProvisioning } from '../../../backend/services/provisioning-service';
 import { withApiHandler, parseBody, json, ApiError } from '../../../backend/http/api-handler';
 
@@ -14,9 +15,18 @@ const bodySchema = z.object({
   code: z.string().min(10),
 });
 
-async function handler(req: VercelRequest, res: VercelResponse) {
+const readCodeFromRequest = (req: VercelRequest): string => {
+  if (req.method === 'GET') {
+    const queryCode = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
+    return z.string().min(10).parse(queryCode);
+  }
   const body = bodySchema.parse(parseBody(req));
-  const { client, tokens } = await exchangeCodeForTokens(body.code);
+  return body.code;
+};
+
+async function handler(req: VercelRequest, res: VercelResponse) {
+  const code = readCodeFromRequest(req);
+  const { client, tokens } = await exchangeCodeForTokens(code);
   const profile = await readGoogleProfile(client);
   const user = await upsertUserFromGoogle(profile);
   await upsertGoogleCredentials(user.id, tokens);
@@ -37,12 +47,19 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const session = await createSession(user.id);
   setSessionCookie(res, session.rawToken, session.expiresAt);
 
+  if (req.method === 'GET') {
+    const location = env.frontendUrl || 'http://localhost:5173';
+    res.setHeader('Location', location);
+    res.status(302).end();
+    return;
+  }
+
   json(res, 200, {
     user: {
       id: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
+      email: profile.email,
+      name: profile.name,
+      picture: profile.picture,
     },
     workspace: {
       rootFolderId: context.rootFolderId,
@@ -53,5 +70,5 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export default withApiHandler(handler, {
-  methods: ['POST'],
+  methods: ['GET', 'POST'],
 });

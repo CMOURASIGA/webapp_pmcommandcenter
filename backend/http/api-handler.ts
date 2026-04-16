@@ -64,7 +64,12 @@ export const withApiHandler = (handler: ApiHandler, options: HandlerOptions = {}
       }
 
       console.error('[api] unhandled error', error);
-      json(res, 500, { error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+      const payload =
+        env.nodeEnv === 'production'
+          ? { error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }
+          : { error: errorMessage, code: 'INTERNAL_SERVER_ERROR' };
+      json(res, 500, payload);
     }
   };
 };
