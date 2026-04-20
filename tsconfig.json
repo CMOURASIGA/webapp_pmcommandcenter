@@ -17,7 +17,19 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "App.tsx",
+    "constants.tsx",
+    "index.tsx",
+    "vite-env.d.ts",
+    "types.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "pages/**/*.ts",
+    "pages/**/*.tsx",
+    "services/**/*.ts",
+    "store/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",
@@ -30,3 +42,4 @@
     "prisma"
   ]
 }
+
