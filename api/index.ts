@@ -20,7 +20,7 @@ import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version';
 import { ApiError, withApiHandler } from '../backend/http/api-handler';
 
 type QueryValue = string | string[];
-type Query = Record<string, QueryValue | undefined>;
+type Query = Record<string, QueryValue>;
 type RouteHandler = (req: VercelRequest, res: VercelResponse) => Promise<void> | void;
 
 const buildBaseQuery = (req: VercelRequest): Query => {
