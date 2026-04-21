@@ -1,9 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import authGoogleUrlHandler from '../api_handlers/auth/google/url';
+import authGoogleCallbackHandler from '../api_handlers/auth/google/callback';
+import authLogoutHandler from '../api_handlers/auth/logout';
+import authMeHandler from '../api_handlers/auth/me';
+import clientsIndexHandler from '../api_handlers/clients/index';
+import clientsByIdHandler from '../api_handlers/clients/[id]';
+import googleContextHandler from '../api_handlers/google/context';
+import googleProvisionHandler from '../api_handlers/google/provision';
+import projectsIndexHandler from '../api_handlers/projects/index';
+import projectsByIdHandler from '../api_handlers/projects/[id]';
+import projectsArtifactsHandler from '../api_handlers/projects/[id]/artifacts';
+import projectsHistoryHandler from '../api_handlers/projects/[id]/history';
+import projectsShareHandler from '../api_handlers/projects/[id]/share';
+import projectsMembersIndexHandler from '../api_handlers/projects/[id]/members/index';
+import projectsMembersByIdHandler from '../api_handlers/projects/[id]/members/[memberId]';
+import artifactsByIdHandler from '../api_handlers/artifacts/[id]';
+import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version';
 
 type QueryValue = string | string[];
 type Query = Record<string, QueryValue>;
 type RouteHandler = (req: VercelRequest, res: VercelResponse) => Promise<void> | void;
-type RouteLoader = () => Promise<RouteHandler>;
 
 const buildBaseQuery = (req: VercelRequest): Query => {
   const url = new URL(req.url || '/', 'http://localhost');
@@ -31,13 +47,13 @@ const assignQuery = (req: VercelRequest, params: Query = {}) => {
   };
 };
 
-const routeToHandler = (routePath: string): { load: RouteLoader; params?: Query } | null => {
+const routeToHandler = (routePath: string): { handler: RouteHandler; params?: Query } | null => {
   const route = routePath.replace(/^\/api\/?/, '').replace(/^\/+/, '');
   const segments = route.split('/').filter(Boolean).map(decodeURIComponent);
 
   if (segments.length === 1 && segments[0] === 'health') {
     return {
-      load: async () => async (_req, res) => {
+      handler: async (_req, res) => {
         res.status(200).json({
           ok: true,
           service: 'pm-command-center-api',
@@ -48,84 +64,84 @@ const routeToHandler = (routePath: string): { load: RouteLoader; params?: Query 
   }
 
   if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'url') {
-    return { load: () => import('../api_handlers/auth/google/url').then((m) => m.default as RouteHandler) };
+    return { handler: authGoogleUrlHandler };
   }
   if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'callback') {
-    return { load: () => import('../api_handlers/auth/google/callback').then((m) => m.default as RouteHandler) };
+    return { handler: authGoogleCallbackHandler };
   }
   if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'logout') {
-    return { load: () => import('../api_handlers/auth/logout').then((m) => m.default as RouteHandler) };
+    return { handler: authLogoutHandler };
   }
   if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'me') {
-    return { load: () => import('../api_handlers/auth/me').then((m) => m.default as RouteHandler) };
+    return { handler: authMeHandler };
   }
 
   if (segments.length === 1 && segments[0] === 'clients') {
-    return { load: () => import('../api_handlers/clients/index').then((m) => m.default as RouteHandler) };
+    return { handler: clientsIndexHandler };
   }
   if (segments.length === 2 && segments[0] === 'clients') {
     return {
-      load: () => import('../api_handlers/clients/[id]').then((m) => m.default as RouteHandler),
+      handler: clientsByIdHandler,
       params: { id: segments[1] },
     };
   }
 
   if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'context') {
-    return { load: () => import('../api_handlers/google/context').then((m) => m.default as RouteHandler) };
+    return { handler: googleContextHandler };
   }
   if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'provision') {
-    return { load: () => import('../api_handlers/google/provision').then((m) => m.default as RouteHandler) };
+    return { handler: googleProvisionHandler };
   }
 
   if (segments.length === 1 && segments[0] === 'projects') {
-    return { load: () => import('../api_handlers/projects/index').then((m) => m.default as RouteHandler) };
+    return { handler: projectsIndexHandler };
   }
   if (segments.length === 2 && segments[0] === 'projects') {
     return {
-      load: () => import('../api_handlers/projects/[id]').then((m) => m.default as RouteHandler),
+      handler: projectsByIdHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'artifacts') {
     return {
-      load: () => import('../api_handlers/projects/[id]/artifacts').then((m) => m.default as RouteHandler),
+      handler: projectsArtifactsHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'history') {
     return {
-      load: () => import('../api_handlers/projects/[id]/history').then((m) => m.default as RouteHandler),
+      handler: projectsHistoryHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'share') {
     return {
-      load: () => import('../api_handlers/projects/[id]/share').then((m) => m.default as RouteHandler),
+      handler: projectsShareHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'members') {
     return {
-      load: () => import('../api_handlers/projects/[id]/members/index').then((m) => m.default as RouteHandler),
+      handler: projectsMembersIndexHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 4 && segments[0] === 'projects' && segments[2] === 'members') {
     return {
-      load: () => import('../api_handlers/projects/[id]/members/[memberId]').then((m) => m.default as RouteHandler),
+      handler: projectsMembersByIdHandler,
       params: { id: segments[1], memberId: segments[3] },
     };
   }
 
   if (segments.length === 2 && segments[0] === 'artifacts') {
     return {
-      load: () => import('../api_handlers/artifacts/[id]').then((m) => m.default as RouteHandler),
+      handler: artifactsByIdHandler,
       params: { id: segments[1] },
     };
   }
   if (segments.length === 3 && segments[0] === 'artifacts' && segments[2] === 'version') {
     return {
-      load: () => import('../api_handlers/artifacts/[id]/version').then((m) => m.default as RouteHandler),
+      handler: artifactsVersionHandler,
       params: { id: segments[1] },
     };
   }
@@ -156,9 +172,8 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const routeHandler = await mapped.load();
     assignQuery(req, mapped.params);
-    await routeHandler(req, res);
+    await mapped.handler(req, res);
   } catch (error) {
     console.error('[api/index] unhandled error', error);
     const url = new URL(req.url || '/', 'http://localhost');
