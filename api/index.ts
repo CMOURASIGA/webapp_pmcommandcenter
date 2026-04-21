@@ -161,7 +161,21 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     await routeHandler(req, res);
   } catch (error) {
     console.error('[api/index] unhandled error', error);
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    const url = new URL(req.url || '/', 'http://localhost');
+    const debugEnabled = url.searchParams.get('debug') === '1' || req.headers['x-debug-api'] === '1';
+    const payload: Record<string, unknown> = {
+      error: 'Internal server error',
+      code: 'INTERNAL_SERVER_ERROR',
+    };
+
+    if (debugEnabled && error instanceof Error) {
+      payload.debug = {
+        name: error.name,
+        message: error.message,
+      };
+    }
+
+    res.status(500).json(payload);
   }
 }
 
