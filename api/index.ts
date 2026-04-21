@@ -1,27 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import healthHandler from '../api_handlers/health';
-import authGoogleUrlHandler from '../api_handlers/auth/google/url';
-import authGoogleCallbackHandler from '../api_handlers/auth/google/callback';
-import authLogoutHandler from '../api_handlers/auth/logout';
-import authMeHandler from '../api_handlers/auth/me';
-import clientsIndexHandler from '../api_handlers/clients/index';
-import clientsByIdHandler from '../api_handlers/clients/[id]';
-import googleContextHandler from '../api_handlers/google/context';
-import googleProvisionHandler from '../api_handlers/google/provision';
-import projectsIndexHandler from '../api_handlers/projects/index';
-import projectsByIdHandler from '../api_handlers/projects/[id]';
-import projectsArtifactsHandler from '../api_handlers/projects/[id]/artifacts';
-import projectsHistoryHandler from '../api_handlers/projects/[id]/history';
-import projectsShareHandler from '../api_handlers/projects/[id]/share';
-import projectsMembersIndexHandler from '../api_handlers/projects/[id]/members/index';
-import projectsMembersByIdHandler from '../api_handlers/projects/[id]/members/[memberId]';
-import artifactsByIdHandler from '../api_handlers/artifacts/[id]';
-import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version';
 import { ApiError, withApiHandler } from '../backend/http/api-handler';
 
 type QueryValue = string | string[];
 type Query = Record<string, QueryValue>;
 type RouteHandler = (req: VercelRequest, res: VercelResponse) => Promise<void> | void;
+type RouteLoader = () => Promise<RouteHandler>;
 
 const buildBaseQuery = (req: VercelRequest): Query => {
   const url = new URL(req.url || '/', 'http://localhost');
@@ -49,57 +32,95 @@ const assignQuery = (req: VercelRequest, params: Query = {}) => {
   };
 };
 
-const routeToHandler = (routePath: string): { handler: RouteHandler; params?: Query } | null => {
+const routeToHandler = (routePath: string): { load: RouteLoader; params?: Query } | null => {
   const route = routePath.replace(/^\/api\/?/, '').replace(/^\/+/, '');
   const segments = route.split('/').filter(Boolean).map(decodeURIComponent);
 
-  if (segments.length === 1 && segments[0] === 'health') return { handler: healthHandler };
+  if (segments.length === 1 && segments[0] === 'health') {
+    return { load: () => import('../api_handlers/health').then((m) => m.default as RouteHandler) };
+  }
 
   if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'url') {
-    return { handler: authGoogleUrlHandler };
+    return { load: () => import('../api_handlers/auth/google/url').then((m) => m.default as RouteHandler) };
   }
   if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'callback') {
-    return { handler: authGoogleCallbackHandler };
+    return { load: () => import('../api_handlers/auth/google/callback').then((m) => m.default as RouteHandler) };
   }
-  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'logout') return { handler: authLogoutHandler };
-  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'me') return { handler: authMeHandler };
+  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'logout') {
+    return { load: () => import('../api_handlers/auth/logout').then((m) => m.default as RouteHandler) };
+  }
+  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'me') {
+    return { load: () => import('../api_handlers/auth/me').then((m) => m.default as RouteHandler) };
+  }
 
-  if (segments.length === 1 && segments[0] === 'clients') return { handler: clientsIndexHandler };
+  if (segments.length === 1 && segments[0] === 'clients') {
+    return { load: () => import('../api_handlers/clients/index').then((m) => m.default as RouteHandler) };
+  }
   if (segments.length === 2 && segments[0] === 'clients') {
-    return { handler: clientsByIdHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/clients/[id]').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
 
-  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'context') return { handler: googleContextHandler };
-  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'provision') return { handler: googleProvisionHandler };
+  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'context') {
+    return { load: () => import('../api_handlers/google/context').then((m) => m.default as RouteHandler) };
+  }
+  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'provision') {
+    return { load: () => import('../api_handlers/google/provision').then((m) => m.default as RouteHandler) };
+  }
 
-  if (segments.length === 1 && segments[0] === 'projects') return { handler: projectsIndexHandler };
+  if (segments.length === 1 && segments[0] === 'projects') {
+    return { load: () => import('../api_handlers/projects/index').then((m) => m.default as RouteHandler) };
+  }
   if (segments.length === 2 && segments[0] === 'projects') {
-    return { handler: projectsByIdHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/projects/[id]').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'artifacts') {
-    return { handler: projectsArtifactsHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/projects/[id]/artifacts').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'history') {
-    return { handler: projectsHistoryHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/projects/[id]/history').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'share') {
-    return { handler: projectsShareHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/projects/[id]/share').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'members') {
-    return { handler: projectsMembersIndexHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/projects/[id]/members/index').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 4 && segments[0] === 'projects' && segments[2] === 'members') {
     return {
-      handler: projectsMembersByIdHandler,
+      load: () => import('../api_handlers/projects/[id]/members/[memberId]').then((m) => m.default as RouteHandler),
       params: { id: segments[1], memberId: segments[3] },
     };
   }
 
   if (segments.length === 2 && segments[0] === 'artifacts') {
-    return { handler: artifactsByIdHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/artifacts/[id]').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
   if (segments.length === 3 && segments[0] === 'artifacts' && segments[2] === 'version') {
-    return { handler: artifactsVersionHandler, params: { id: segments[1] } };
+    return {
+      load: () => import('../api_handlers/artifacts/[id]/version').then((m) => m.default as RouteHandler),
+      params: { id: segments[1] },
+    };
   }
 
   return null;
@@ -120,8 +141,9 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     throw new ApiError(404, 'Not found', 'NOT_FOUND');
   }
 
+  const routeHandler = await mapped.load();
   assignQuery(req, mapped.params);
-  await mapped.handler(req, res);
+  await routeHandler(req, res);
 }
 
 export default withApiHandler(handler, {
