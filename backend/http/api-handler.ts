@@ -47,9 +47,24 @@ const isDatabaseUnavailableError = (error: unknown) => {
 };
 
 const applyCors = (req: VercelRequest, res: VercelResponse) => {
+  const normalizeOrigin = (value?: string) => {
+    if (!value) return null;
+    try {
+      const parsed = new URL(value);
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const frontendOrigin = normalizeOrigin(env.frontendUrl) || 'http://localhost:5173';
   const requestOrigin = req.headers.origin;
-  const allowOrigin = requestOrigin && requestOrigin === env.frontendUrl ? requestOrigin : env.frontendUrl;
-  res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+  const allowOrigin = requestOrigin && requestOrigin === frontendOrigin ? requestOrigin : frontendOrigin;
+  try {
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+  } catch (error) {
+    console.error('[api] failed to set CORS origin header', { allowOrigin, error });
+  }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -57,19 +72,19 @@ const applyCors = (req: VercelRequest, res: VercelResponse) => {
 
 export const withApiHandler = (handler: ApiHandler, options: HandlerOptions = {}): ApiHandler => {
   return async (req, res) => {
-    applyCors(req, res);
-
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
-
-    if (options.methods && req.method && !options.methods.includes(req.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS')) {
-      json(res, 405, { error: 'Method not allowed' });
-      return;
-    }
-
     try {
+      applyCors(req, res);
+
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+
+      if (options.methods && req.method && !options.methods.includes(req.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS')) {
+        json(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+
       await handler(req, res);
     } catch (error) {
       if (error instanceof ApiError) {
