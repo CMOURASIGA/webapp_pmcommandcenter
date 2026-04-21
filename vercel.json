@@ -1,6 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/auth/me"
+    },
+    {
+      "source": "/api/auth/logout",
+      "destination": "/api/auth/logout"
+    },
+    {
+      "source": "/api/auth/google/url",
+      "destination": "/api/auth/google/url"
+    },
+    {
+      "source": "/api/auth/google/callback",
+      "destination": "/api/auth/google/callback"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api?route=$1"
     },
