@@ -1,0 +1,121 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import healthHandler from '../api_handlers/health';
+import authGoogleUrlHandler from '../api_handlers/auth/google/url';
+import authGoogleCallbackHandler from '../api_handlers/auth/google/callback';
+import authLogoutHandler from '../api_handlers/auth/logout';
+import authMeHandler from '../api_handlers/auth/me';
+import clientsIndexHandler from '../api_handlers/clients/index';
+import clientsByIdHandler from '../api_handlers/clients/[id]';
+import googleContextHandler from '../api_handlers/google/context';
+import googleProvisionHandler from '../api_handlers/google/provision';
+import projectsIndexHandler from '../api_handlers/projects/index';
+import projectsByIdHandler from '../api_handlers/projects/[id]';
+import projectsArtifactsHandler from '../api_handlers/projects/[id]/artifacts';
+import projectsHistoryHandler from '../api_handlers/projects/[id]/history';
+import projectsShareHandler from '../api_handlers/projects/[id]/share';
+import projectsMembersIndexHandler from '../api_handlers/projects/[id]/members/index';
+import projectsMembersByIdHandler from '../api_handlers/projects/[id]/members/[memberId]';
+import artifactsByIdHandler from '../api_handlers/artifacts/[id]';
+import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version';
+import { ApiError, withApiHandler } from '../backend/http/api-handler';
+
+type QueryValue = string | string[];
+type Query = Record<string, QueryValue | undefined>;
+type RouteHandler = (req: VercelRequest, res: VercelResponse) => Promise<void> | void;
+
+const buildBaseQuery = (req: VercelRequest): Query => {
+  const url = new URL(req.url || '/', 'http://localhost');
+  const query: Query = {};
+  for (const [key, value] of url.searchParams.entries()) {
+    if (query[key] === undefined) {
+      query[key] = value;
+      continue;
+    }
+    const current = query[key];
+    if (Array.isArray(current)) {
+      current.push(value);
+      query[key] = current;
+      continue;
+    }
+    query[key] = [current as string, value];
+  }
+  return query;
+};
+
+const assignQuery = (req: VercelRequest, params: Query = {}) => {
+  (req as VercelRequest & { query: Query }).query = {
+    ...buildBaseQuery(req),
+    ...params,
+  };
+};
+
+const routeToHandler = (pathname: string): { handler: RouteHandler; params?: Query } | null => {
+  const route = pathname.replace(/^\/api\/?/, '');
+  const segments = route.split('/').filter(Boolean).map(decodeURIComponent);
+
+  if (segments.length === 1 && segments[0] === 'health') return { handler: healthHandler };
+
+  if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'url') {
+    return { handler: authGoogleUrlHandler };
+  }
+  if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'callback') {
+    return { handler: authGoogleCallbackHandler };
+  }
+  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'logout') return { handler: authLogoutHandler };
+  if (segments.length === 2 && segments[0] === 'auth' && segments[1] === 'me') return { handler: authMeHandler };
+
+  if (segments.length === 1 && segments[0] === 'clients') return { handler: clientsIndexHandler };
+  if (segments.length === 2 && segments[0] === 'clients') {
+    return { handler: clientsByIdHandler, params: { id: segments[1] } };
+  }
+
+  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'context') return { handler: googleContextHandler };
+  if (segments.length === 2 && segments[0] === 'google' && segments[1] === 'provision') return { handler: googleProvisionHandler };
+
+  if (segments.length === 1 && segments[0] === 'projects') return { handler: projectsIndexHandler };
+  if (segments.length === 2 && segments[0] === 'projects') {
+    return { handler: projectsByIdHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'artifacts') {
+    return { handler: projectsArtifactsHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'history') {
+    return { handler: projectsHistoryHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'share') {
+    return { handler: projectsShareHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 3 && segments[0] === 'projects' && segments[2] === 'members') {
+    return { handler: projectsMembersIndexHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 4 && segments[0] === 'projects' && segments[2] === 'members') {
+    return {
+      handler: projectsMembersByIdHandler,
+      params: { id: segments[1], memberId: segments[3] },
+    };
+  }
+
+  if (segments.length === 2 && segments[0] === 'artifacts') {
+    return { handler: artifactsByIdHandler, params: { id: segments[1] } };
+  }
+  if (segments.length === 3 && segments[0] === 'artifacts' && segments[2] === 'version') {
+    return { handler: artifactsVersionHandler, params: { id: segments[1] } };
+  }
+
+  return null;
+};
+
+async function handler(req: VercelRequest, res: VercelResponse) {
+  const url = new URL(req.url || '/', 'http://localhost');
+  const mapped = routeToHandler(url.pathname);
+  if (!mapped) {
+    throw new ApiError(404, 'Not found', 'NOT_FOUND');
+  }
+
+  assignQuery(req, mapped.params);
+  await mapped.handler(req, res);
+}
+
+export default withApiHandler(handler, {
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
