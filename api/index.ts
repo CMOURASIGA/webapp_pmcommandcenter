@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ApiError, withApiHandler } from '../backend/http/api-handler';
 
 type QueryValue = string | string[];
 type Query = Record<string, QueryValue>;
@@ -37,7 +36,15 @@ const routeToHandler = (routePath: string): { load: RouteLoader; params?: Query 
   const segments = route.split('/').filter(Boolean).map(decodeURIComponent);
 
   if (segments.length === 1 && segments[0] === 'health') {
-    return { load: () => import('../api_handlers/health').then((m) => m.default as RouteHandler) };
+    return {
+      load: async () => async (_req, res) => {
+        res.status(200).json({
+          ok: true,
+          service: 'pm-command-center-api',
+          timestamp: new Date().toISOString(),
+        });
+      },
+    };
   }
 
   if (segments.length === 3 && segments[0] === 'auth' && segments[1] === 'google' && segments[2] === 'url') {
@@ -133,19 +140,29 @@ const pickRouteQuery = (value: unknown): string | null => {
 };
 
 async function handler(req: VercelRequest, res: VercelResponse) {
-  const url = new URL(req.url || '/', 'http://localhost');
-  const routeFromQuery = pickRouteQuery(req.query?.route);
-  const routePath = routeFromQuery ? `/api/${routeFromQuery}` : url.pathname;
-  const mapped = routeToHandler(routePath);
-  if (!mapped) {
-    throw new ApiError(404, 'Not found', 'NOT_FOUND');
-  }
+  try {
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
 
-  const routeHandler = await mapped.load();
-  assignQuery(req, mapped.params);
-  await routeHandler(req, res);
+    const url = new URL(req.url || '/', 'http://localhost');
+    const routeFromQuery = pickRouteQuery(req.query?.route);
+    const routePath = routeFromQuery ? `/api/${routeFromQuery}` : url.pathname;
+    const mapped = routeToHandler(routePath);
+
+    if (!mapped) {
+      res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
+      return;
+    }
+
+    const routeHandler = await mapped.load();
+    assignQuery(req, mapped.params);
+    await routeHandler(req, res);
+  } catch (error) {
+    console.error('[api/index] unhandled error', error);
+    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+  }
 }
 
-export default withApiHandler(handler, {
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-});
+export default handler;
