@@ -49,8 +49,8 @@ const assignQuery = (req: VercelRequest, params: Query = {}) => {
   };
 };
 
-const routeToHandler = (pathname: string): { handler: RouteHandler; params?: Query } | null => {
-  const route = pathname.replace(/^\/api\/?/, '');
+const routeToHandler = (routePath: string): { handler: RouteHandler; params?: Query } | null => {
+  const route = routePath.replace(/^\/api\/?/, '').replace(/^\/+/, '');
   const segments = route.split('/').filter(Boolean).map(decodeURIComponent);
 
   if (segments.length === 1 && segments[0] === 'health') return { handler: healthHandler };
@@ -105,9 +105,17 @@ const routeToHandler = (pathname: string): { handler: RouteHandler; params?: Que
   return null;
 };
 
+const pickRouteQuery = (value: unknown): string | null => {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') return value[0];
+  return null;
+};
+
 async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url || '/', 'http://localhost');
-  const mapped = routeToHandler(url.pathname);
+  const routeFromQuery = pickRouteQuery(req.query?.route);
+  const routePath = routeFromQuery ? `/api/${routeFromQuery}` : url.pathname;
+  const mapped = routeToHandler(routePath);
   if (!mapped) {
     throw new ApiError(404, 'Not found', 'NOT_FOUND');
   }
