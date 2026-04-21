@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .push_tmp/
+
+.vercel
+.env
+.env*.local
