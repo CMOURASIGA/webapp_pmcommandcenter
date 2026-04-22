@@ -3,6 +3,7 @@ import { Project } from '../types';
 import { Calendar, ExternalLink, Share2, Edit3, RefreshCcw } from 'lucide-react';
 import { useThemeStore } from '../store/useThemeStore';
 import { getHealthTone, getStatusTone } from '../services/projectUi';
+import { normalizeDriveFolderUrl } from '../services/driveUrl';
 
 interface ProjectHeaderProps {
   project: Project;
@@ -27,6 +28,7 @@ const InfoBadge: React.FC<{ label: string; value?: string; theme: 'light' | 'dar
 
 export const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, onEdit, onShare }) => {
   const theme = useThemeStore((state) => state.theme);
+  const driveFolderUrl = normalizeDriveFolderUrl(project.folderRef?.projectFolderUrl);
 
   return (
     <header className={`rounded-3xl border p-5 md:p-6 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
@@ -56,9 +58,9 @@ export const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, onEdit, o
             <Share2 size={14} />
             Compartilhar
           </button>
-          {project.folderRef?.projectFolderUrl && (
+          {driveFolderUrl && (
             <a
-              href={project.folderRef.projectFolderUrl}
+              href={driveFolderUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500"

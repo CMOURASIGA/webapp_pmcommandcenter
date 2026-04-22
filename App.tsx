@@ -24,7 +24,6 @@ const App: React.FC = () => {
   const login = useAuthStore((state) => state.login);
   const loadingSession = useAuthStore((state) => state.loadingSession);
   const checkBackendSession = useAuthStore((state) => state.checkBackendSession);
-  const seedDemoData = useWorkspaceStore((state) => state.seedDemoData);
   const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
   const setDataSource = useWorkspaceStore((state) => state.setDataSource);
   const runtimeBackendMode = backendMode();
@@ -41,10 +40,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (runtimeBackendMode === 'api') {
       checkBackendSession().catch(() => null);
-      return;
     }
-    seedDemoData();
-  }, [checkBackendSession, runtimeBackendMode, seedDemoData]);
+  }, [checkBackendSession, runtimeBackendMode]);
 
   useEffect(() => {
     if (runtimeBackendMode !== 'api') return;

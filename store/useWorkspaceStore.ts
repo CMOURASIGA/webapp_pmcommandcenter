@@ -8,7 +8,6 @@ import {
   ArtifactType,
   Client,
   CoreAgentId,
-  DriveFolderRef,
   HistoryEvent,
   Project,
   ProjectHealth,
@@ -120,42 +119,10 @@ interface WorkspaceState {
   updateSettings: (payload: Partial<WorkspaceSettings>) => void;
   updateAgentLink: (agent: keyof WorkspaceSettings['agentLinks'], url: string) => void;
   setFlag: (flag: keyof WorkspaceSettings['flags'], value: boolean) => void;
-  seedDemoData: () => void;
 }
 
 const nowIso = () => new Date().toISOString();
 const randomId = () => crypto.randomUUID();
-
-const formatDate = (iso: string) => {
-  const date = new Date(iso);
-  return date.toLocaleDateString('pt-BR');
-};
-
-const fallbackFolderRef = (clientName: string, projectName: string): DriveFolderRef => {
-  const base = `local-${Math.random().toString(36).slice(2, 8)}`;
-  const projectSlug = projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const clientSlug = clientName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const rootUrl = `https://drive.google.com/drive/folders/${base}`;
-
-  return {
-    rootId: base,
-    rootUrl,
-    controlFolderId: `${base}-00`,
-    controlFolderUrl: `${rootUrl}/00_Controle_Projetos`,
-    clientFolderId: `${base}-${clientSlug}`,
-    clientFolderUrl: `${rootUrl}/${clientSlug}`,
-    projectFolderId: `${base}-${projectSlug}`,
-    projectFolderUrl: `${rootUrl}/${projectSlug}`,
-    subfolders: {
-      contexto: `${base}-01_Contexto`,
-      sai: `${base}-02_SAI`,
-      pm: `${base}-03_PM`,
-      bpmn: `${base}-04_BPMN`,
-      status: `${base}-05_Status`,
-      gerais: `${base}-06_Artefatos_Gerais`,
-    },
-  };
-};
 
 const addHistoryEvent = (
   state: WorkspaceState,
@@ -323,7 +290,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           phase: payload.phase,
           health: payload.health,
           lastUpdate: nowIso(),
-          folderRef: fallbackFolderRef(client.name, payload.name),
           sharedWith: [],
         };
 
@@ -695,55 +661,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             },
           },
         }));
-      },
-
-      seedDemoData: () => {
-        if (get().dataSource === 'api') return;
-        const state = get();
-        if (state.clients.length > 0 || state.projects.length > 0) return;
-
-        const actor = 'system@7c.local';
-        const client = state.createClient(
-          {
-            name: 'Cliente Demo 7C',
-            description: 'Conta de validacao local',
-            owner: 'Gestor Local',
-            notes: 'Criado automaticamente para smoke test local',
-          },
-          actor
-        );
-
-        const project = get().createProject(
-          {
-            name: 'Projeto Onboarding 7C',
-            objective: 'Validar fluxo completo Cliente > Projeto > Agente > Artefato',
-            description: 'Projeto piloto para validar as fases iniciais no ambiente local',
-            clientId: client.id,
-            responsible: 'Gestor Local',
-            methodology: 'Hybrid',
-            status: 'Ativo',
-            startDate: formatDate(nowIso()),
-            endDate: '',
-            stakeholders: ['Diretoria', 'PMO', 'Produto'],
-            nextStep: 'Executar Storyboard inicial',
-            phase: 'Descoberta',
-            health: 'Saudavel',
-          },
-          actor
-        );
-
-        get().createArtifact({
-          projectId: project.id,
-          name: `Storyboard_Inicial_${new Date().toISOString().slice(0, 10)}`,
-          type: 'STORYBOARD',
-          scope: 'SAI',
-          format: 'markdown',
-          content: '# Storyboard inicial\n\n- Contexto consolidado\n- Hipoteses principais\n- Proximos passos',
-          createdBy: actor,
-          status: 'ACTIVE',
-          agentId: 'storyboardIntelligenceArchitect',
-          note: 'Seed local',
-        });
       },
     }),
     {

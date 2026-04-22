@@ -17,6 +17,7 @@ import { ArtifactEditorDrawer, buildArtifactEditorDefaults } from '../components
 import { useFeedback } from '../components/FeedbackProvider';
 import { SideDrawer } from '../components/SideDrawer';
 import { backendApi } from '../services/backendApi';
+import { normalizeDriveFolderUrl } from '../services/driveUrl';
 
 const tabs = [
   { id: 'overview', label: 'Visao Geral' },
@@ -512,10 +513,11 @@ export const ProjectWorkspace: React.FC = () => {
         onCopyContext={copyContext}
         onSaveArtifact={() => openCreateArtifactDrawer()}
         onOpenDrive={() => {
-          if (project.folderRef?.projectFolderUrl) {
-            window.open(project.folderRef.projectFolderUrl, '_blank', 'noopener,noreferrer');
+          const driveFolderUrl = normalizeDriveFolderUrl(project.folderRef?.projectFolderUrl);
+          if (driveFolderUrl) {
+            window.open(driveFolderUrl, '_blank', 'noopener,noreferrer');
           } else {
-            feedback.warning('Link de pasta nao disponivel.');
+            feedback.warning('Link da pasta do Drive indisponível ou inválido.');
           }
         }}
         onShare={() => setShareOpen(true)}

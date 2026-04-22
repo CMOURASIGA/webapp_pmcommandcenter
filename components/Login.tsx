@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { AuthUser } from '../types';
 import { authMode, backendMode } from '../services/envService';
 import { useThemeStore } from '../store/useThemeStore';
@@ -153,14 +153,6 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
     }
   };
 
-  const handleLocalAccess = () => {
-    onAuthenticated({
-      email: 'local.admin@7c.local',
-      name: 'Admin Local',
-      provider: 'local',
-    });
-  };
-
   return (
     <div className={`flex min-h-screen items-center justify-center px-4 ${theme === 'light' ? 'bg-slate-50' : 'bg-slate-950'}`}>
       <div className={`w-full max-w-md rounded-3xl border p-8 shadow-2xl ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
@@ -168,10 +160,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
           <img src={settings.brandLogoUrl} alt="7C Commander" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover" />
           <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-500">7C Commander</p>
           <h1 className={`mt-2 text-2xl font-black ${theme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>
-            Plataforma de Gestao por Projeto
+            Plataforma de Gestão por Projeto
           </h1>
           <p className={`mt-2 text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
-            Login principal com Google e fallback local para validacao do desenvolvimento.
+            Login com Google para acesso ao ambiente oficial.
           </p>
         </div>
 
@@ -212,15 +204,9 @@ export const Login: React.FC<LoginProps> = ({ onAuthenticated }) => {
           )}
 
           {runtimeBackendMode === 'local' && (
-            <button
-              onClick={handleLocalAccess}
-              data-testid="login-local-button"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-500"
-            >
-              <ShieldCheck size={16} />
-              Entrar no ambiente local
-              <ArrowRight size={16} />
-            </button>
+            <div className={`rounded-2xl border p-4 text-sm ${theme === 'light' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-amber-800/40 bg-amber-900/20 text-amber-200'}`}>
+              Ambiente local sem login habilitado. Configure `VITE_BACKEND_MODE=api` para autenticação real.
+            </div>
           )}
         </div>
       </div>
