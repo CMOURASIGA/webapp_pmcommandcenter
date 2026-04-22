@@ -25,6 +25,23 @@ const createProjectSchema = z.object({
   stakeholders: z.array(z.string()).optional(),
 });
 
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutHandle: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+};
+
 async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await requireAuthContext(req);
 
@@ -86,27 +103,39 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       throw new ApiError(404, 'Client not found', 'CLIENT_NOT_FOUND');
     }
 
+    let folder: { projectFolderId: string; projectFolderUrl: string | null } | null = null;
     const userDriveContext = await prisma.userDriveContext.findUnique({
       where: { userId: auth.userId },
     });
-    if (!userDriveContext?.projectsFolderId) {
-      throw new ApiError(
-        400,
-        'Google Drive context not provisioned. Call /api/google/provision first.',
-        'GOOGLE_CONTEXT_NOT_READY'
-      );
-    }
     const oauthClient = await loadOAuthClientForUser(auth.userId);
-    if (!oauthClient) {
-      throw new ApiError(400, 'Google credentials not found for this user', 'GOOGLE_CREDENTIALS_NOT_FOUND');
-    }
 
-    const folder = await ensureProjectFolderStructure({
-      auth: oauthClient,
-      projectsFolderId: userDriveContext.projectsFolderId,
-      clientName: client.name,
-      projectName: body.name,
-    });
+    if (userDriveContext?.projectsFolderId && oauthClient) {
+      try {
+        folder = await withTimeout(
+          ensureProjectFolderStructure({
+            auth: oauthClient,
+            projectsFolderId: userDriveContext.projectsFolderId,
+            clientName: client.name,
+            projectName: body.name,
+          }),
+          10000,
+          'ensureProjectFolderStructure'
+        );
+      } catch (error) {
+        console.error('[projects][POST] failed to ensure drive folder structure', {
+          userId: auth.userId,
+          clientId: client.id,
+          projectName: body.name,
+          error,
+        });
+      }
+    } else {
+      console.warn('[projects][POST] skipping drive folder provisioning (missing context or credentials)', {
+        userId: auth.userId,
+        hasProjectsFolderId: Boolean(userDriveContext?.projectsFolderId),
+        hasOAuthClient: Boolean(oauthClient),
+      });
+    }
 
     const created = await prisma.project.create({
       data: {
@@ -125,37 +154,58 @@ async function handler(req: VercelRequest, res: VercelResponse) {
         phase: body.phase?.trim() || null,
         nextStep: body.nextStep?.trim() || null,
         stakeholdersJson: body.stakeholders || [],
-        folderId: folder.projectFolderId,
-        folderUrl: folder.projectFolderUrl,
+        folderId: folder?.projectFolderId || null,
+        folderUrl: folder?.projectFolderUrl || null,
       },
     });
 
-    await recordAuditEvent({
-      actorUserId: auth.userId,
-      projectId: created.id,
-      entityType: 'PROJECT',
-      entityId: created.id,
-      action: 'PROJECT_CREATED',
-      summary: `Projeto criado: ${created.name}`,
-    });
+    try {
+      await recordAuditEvent({
+        actorUserId: auth.userId,
+        projectId: created.id,
+        entityType: 'PROJECT',
+        entityId: created.id,
+        action: 'PROJECT_CREATED',
+        summary: `Projeto criado: ${created.name}`,
+      });
+    } catch (error) {
+      console.error('[projects][POST] failed to record audit event', {
+        projectId: created.id,
+        userId: auth.userId,
+        error,
+      });
+    }
 
-    await syncProjectToSheet({
-      ownerUserId: auth.userId,
-      projectId: created.id,
-      clientId: created.clientId,
-      nome: created.name,
-      objetivo: created.objective,
-      metodologia: created.methodology,
-      status: created.status,
-      startDate: created.startDate || undefined,
-      endDate: created.endDate || undefined,
-      responsible: created.responsible || undefined,
-      folderId: created.folderId || undefined,
-      visibility: created.visibility,
-      createdBy: auth.email,
-    });
+    try {
+      await withTimeout(
+        syncProjectToSheet({
+          ownerUserId: auth.userId,
+          projectId: created.id,
+          clientId: created.clientId,
+          nome: created.name,
+          objetivo: created.objective,
+          metodologia: created.methodology,
+          status: created.status,
+          startDate: created.startDate || undefined,
+          endDate: created.endDate || undefined,
+          responsible: created.responsible || undefined,
+          folderId: created.folderId || undefined,
+          visibility: created.visibility,
+          createdBy: auth.email,
+        }),
+        8000,
+        'syncProjectToSheet'
+      );
+    } catch (error) {
+      console.error('[projects][POST] failed to sync project to sheet', {
+        projectId: created.id,
+        userId: auth.userId,
+        error,
+      });
+    }
 
     json(res, 201, { project: created });
+    return;
   }
 }
 
