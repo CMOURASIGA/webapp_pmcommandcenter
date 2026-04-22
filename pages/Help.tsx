@@ -44,6 +44,20 @@ export const Help: React.FC = () => {
       </header>
 
       <section className={`rounded-2xl border p-5 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+        <h2 className="text-lg font-black">Objetivo do sistema</h2>
+        <div className="mt-3 space-y-2 text-sm text-slate-500">
+          <p>
+            Centralizar a gestao ponta a ponta de projetos, conectando contexto, execucao com agentes especializados,
+            versionamento de artefatos e rastreabilidade de decisoes.
+          </p>
+          <p>
+            O 7C Commander existe para reduzir dispersao operacional, padronizar entregaveis e acelerar a
+            comunicacao executiva do projeto.
+          </p>
+        </div>
+      </section>
+
+      <section className={`rounded-2xl border p-5 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
         <h2 className="text-lg font-black">Fluxo recomendado</h2>
         <div className="mt-3 space-y-2 text-sm">
           {steps.map((step) => (
