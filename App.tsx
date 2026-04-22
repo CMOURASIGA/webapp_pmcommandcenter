@@ -30,7 +30,8 @@ const App: React.FC = () => {
   const runtimeBackendMode = backendMode();
 
   useEffect(() => {
-    document.documentElement.className = theme === 'light' ? 'light-theme' : 'dark-theme';
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('light-theme', theme === 'light');
   }, [theme]);
 
   useEffect(() => {

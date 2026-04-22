@@ -86,6 +86,9 @@ interface WorkspaceState {
   createProject: (payload: ProjectPayload, actor: string) => Project;
   updateProject: (id: string, payload: Partial<ProjectPayload>, actor: string) => void;
   deleteProject: (id: string, actor: string) => boolean;
+  createProjectAction: (payload: ProjectPayload, actor: string) => Promise<void>;
+  updateProjectAction: (id: string, payload: Partial<ProjectPayload>, actor: string) => Promise<void>;
+  deleteProjectAction: (id: string, actor: string) => Promise<boolean>;
   createArtifact: (payload: ArtifactPayload) => Artifact;
   updateArtifact: (
     artifactId: string,
@@ -391,6 +394,50 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }));
 
         return true;
+      },
+
+      createProjectAction: async (payload, actor) => {
+        if (get().dataSource === 'api') {
+          await backendApi.createProject({
+            clientId: payload.clientId,
+            name: payload.name,
+            description: payload.description,
+            objective: payload.objective,
+            methodology: payload.methodology,
+            status: payload.status,
+            startDate: payload.startDate,
+            endDate: payload.endDate,
+            responsible: payload.responsible,
+            health: payload.health,
+            phase: payload.phase,
+            nextStep: payload.nextStep,
+            stakeholders: payload.stakeholders,
+          });
+          await get().syncFromApi();
+          return;
+        }
+
+        get().createProject(payload, actor);
+      },
+
+      updateProjectAction: async (id, payload, actor) => {
+        if (get().dataSource === 'api') {
+          await backendApi.updateProject(id, payload);
+          await get().syncFromApi();
+          return;
+        }
+
+        get().updateProject(id, payload, actor);
+      },
+
+      deleteProjectAction: async (id, actor) => {
+        if (get().dataSource === 'api') {
+          await backendApi.deleteProject(id);
+          await get().syncFromApi();
+          return true;
+        }
+
+        return get().deleteProject(id, actor);
       },
 
       createArtifact: (payload) => {

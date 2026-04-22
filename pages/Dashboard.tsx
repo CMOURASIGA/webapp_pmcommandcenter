@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -24,12 +24,9 @@ export const Dashboard: React.FC = () => {
   const projects = useWorkspaceStore((state) => state.projects);
   const artifacts = useWorkspaceStore((state) => state.artifacts);
   const history = useWorkspaceStore((state) => state.history);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setLoading(false), 220);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+  const isSyncing = useWorkspaceStore((state) => state.isSyncing);
+  const dataSource = useWorkspaceStore((state) => state.dataSource);
+  const flags = useWorkspaceStore((state) => state.settings.flags);
 
   const indicators = useMemo(() => {
     const active = projects.filter((project) => project.status === 'Ativo').length;
@@ -39,7 +36,7 @@ export const Dashboard: React.FC = () => {
     return { active, riskProjects, staleProjects, recentArtifacts };
   }, [artifacts, projects]);
 
-  if (loading) {
+  if (isSyncing && projects.length === 0 && artifacts.length === 0 && history.length === 0) {
     return (
       <div className="space-y-4">
         <div className={`h-44 animate-pulse rounded-3xl border ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`} />
@@ -55,10 +52,10 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <section className={`rounded-3xl border p-6 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'} `}>
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-500">Inicio</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-500">Início</p>
         <h1 className="mt-2 text-3xl font-black">Command center operacional</h1>
         <p className={`mt-2 text-sm ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
-          Visualize riscos, pendencias e os proximos passos para priorizar acao no fluxo Cliente &gt; Projeto &gt; Agente &gt; Artefato.
+          Visualize riscos, pendências e os próximos passos para priorizar ação no fluxo Cliente &gt; Projeto &gt; Agente &gt; Artefato.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={() => navigate('/clients')} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500">Criar cliente</button>
@@ -100,7 +97,7 @@ export const Dashboard: React.FC = () => {
 
         <div className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase tracking-wider">Sem atualizacao recente</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider">Sem atualização recente</h2>
             <span className="text-xs text-slate-500">Mais de 7 dias</span>
           </div>
           <div className="space-y-2">
@@ -110,7 +107,7 @@ export const Dashboard: React.FC = () => {
                   <div>
                     <p className="text-sm font-semibold">{project.name}</p>
                     <p className="text-xs text-slate-500">
-                      Ultima atualizacao: {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : 'Nao informado'}
+                      Última atualização: {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : 'Não informado'}
                     </p>
                   </div>
                   <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(project.status, theme)}`}>
@@ -165,26 +162,26 @@ export const Dashboard: React.FC = () => {
         <h2 className="mb-3 text-sm font-black uppercase tracking-wider">Status do sistema</h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-3 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-500">Agentes disponiveis</p>
-            <p className="mt-1 font-semibold">Storyboard, PM, BPMN, Status</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-500">Fonte de dados</p>
+            <p className="mt-1 font-semibold">{dataSource === 'api' ? 'API (backend)' : 'Local (browser)'}</p>
           </div>
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-500">Persistencia local</p>
-            <p className="mt-1 font-semibold">Base local ativa para validacao de fluxo completo.</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-500">Sincronização</p>
+            <p className="mt-1 font-semibold">{isSyncing ? 'Sincronizando dados...' : 'Dados sincronizados'}</p>
           </div>
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Proxima acao</p>
-            <p className="mt-1 font-semibold">Abrir um projeto em risco e atualizar proximo passo.</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Recursos habilitados</p>
+            <p className="mt-1 font-semibold">{Object.values(flags).filter(Boolean).length} de {Object.keys(flags).length} ativos</p>
           </div>
         </div>
 
         <div className="mt-3 text-xs text-slate-500">
-          Ultimos eventos: {history.slice(0, 3).map((item) => item.summary).join(' | ') || 'Sem eventos ainda.'}
+          Últimos eventos: {history.slice(0, 3).map((item) => item.summary).join(' | ') || 'Sem eventos ainda.'}
         </div>
       </section>
 
       <button
-        onClick={() => navigate('/projects')}
+        onClick={() => navigate('/projects?new=1')}
         className="fixed bottom-6 right-6 inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-xl shadow-brand-600/30 hover:bg-brand-500"
       >
         <Plus size={16} /> Novo projeto

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, FolderOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -9,7 +9,6 @@ import { ProjectForm } from '../components/ProjectForm';
 import { SideDrawer } from '../components/SideDrawer';
 import { useFeedback } from '../components/FeedbackProvider';
 import { getHealthTone, getStatusTone } from '../services/projectUi';
-import { backendApi } from '../services/backendApi';
 
 const splitStakeholders = (raw: string) =>
   raw
@@ -18,38 +17,51 @@ const splitStakeholders = (raw: string) =>
     .filter(Boolean);
 
 export const Projects: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
   const feedback = useFeedback();
   const clients = useWorkspaceStore((state) => state.clients);
   const projects = useWorkspaceStore((state) => state.projects);
-  const dataSource = useWorkspaceStore((state) => state.dataSource);
-  const syncFromApi = useWorkspaceStore((state) => state.syncFromApi);
-  const createProject = useWorkspaceStore((state) => state.createProject);
-  const updateProject = useWorkspaceStore((state) => state.updateProject);
-  const deleteProject = useWorkspaceStore((state) => state.deleteProject);
+  const isSyncing = useWorkspaceStore((state) => state.isSyncing);
+  const createProjectAction = useWorkspaceStore((state) => state.createProjectAction);
+  const updateProjectAction = useWorkspaceStore((state) => state.updateProjectAction);
+  const deleteProjectAction = useWorkspaceStore((state) => state.deleteProjectAction);
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [viewing, setViewing] = useState<Project | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setLoading(false), 180);
+    const params = new URLSearchParams(location.search);
+    if (params.get('new') === '1') {
+      setEditing(null);
+      setOpenForm(true);
+      navigate('/projects', { replace: true });
+    }
+  }, [location.search, navigate]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 150);
+
     return () => window.clearTimeout(timeoutId);
-  }, []);
+  }, [search]);
 
   const filteredProjects = useMemo(() => {
-    const value = search.toLowerCase();
+    const value = debouncedSearch.toLowerCase();
     return projects.filter(
       (project) =>
         project.name.toLowerCase().includes(value) ||
         project.objective.toLowerCase().includes(value) ||
         (project.clientName || '').toLowerCase().includes(value)
     );
-  }, [projects, search]);
+  }, [projects, debouncedSearch]);
 
   const submit = async (values: {
     name: string;
@@ -71,28 +83,19 @@ export const Projects: React.FC = () => {
       ...values,
       stakeholders: splitStakeholders(values.stakeholders),
     };
+
     try {
       if (editing) {
-        if (dataSource === 'api') {
-          await backendApi.updateProject(editing.id, payload);
-          await syncFromApi();
-        } else {
-          updateProject(editing.id, payload, actor);
-        }
+        await updateProjectAction(editing.id, payload, actor);
         feedback.success('Projeto atualizado com sucesso.');
         setEditing(null);
       } else {
-        if (dataSource === 'api') {
-          await backendApi.createProject(payload);
-          await syncFromApi();
-        } else {
-          createProject(payload, actor);
-        }
+        await createProjectAction(payload, actor);
         feedback.success('Projeto criado com sucesso.');
       }
       setOpenForm(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o projeto.';
+      const message = error instanceof Error ? error.message : 'Não foi possível salvar o projeto.';
       feedback.error(message);
     }
   };
@@ -110,23 +113,18 @@ export const Projects: React.FC = () => {
 
     setDeletingId(project.id);
     try {
-      if (dataSource === 'api') {
-        await backendApi.deleteProject(project.id);
-        await syncFromApi();
-      } else {
-        const removed = deleteProject(project.id, actor);
-        if (!removed) {
-          feedback.error('Nao foi possivel excluir o projeto.');
-          return;
-        }
+      const removed = await deleteProjectAction(project.id, actor);
+      if (!removed) {
+        feedback.error('Não foi possível excluir o projeto.');
+        return;
       }
 
-      feedback.success('Projeto excluido com sucesso.');
+      feedback.success('Projeto excluído com sucesso.');
       if (viewing?.id === project.id) {
         setViewing(null);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nao foi possivel excluir o projeto.';
+      const message = error instanceof Error ? error.message : 'Não foi possível excluir o projeto.';
       feedback.error(message);
     } finally {
       setDeletingId(null);
@@ -138,7 +136,7 @@ export const Projects: React.FC = () => {
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-500">Projetos</p>
-          <h1 className="text-3xl font-black">Catalogo operacional</h1>
+          <h1 className="text-3xl font-black">Catálogo operacional</h1>
         </div>
         <button
           data-testid="projects-new-button"
@@ -184,7 +182,7 @@ export const Projects: React.FC = () => {
         />
       </div>
 
-      {loading ? (
+      {isSyncing && projects.length === 0 ? (
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
             <div
@@ -196,84 +194,84 @@ export const Projects: React.FC = () => {
       ) : (
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {filteredProjects.map((project) => (
-          <article data-testid="project-card" key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="truncate text-lg font-black">{project.name}</h2>
-                <p className="mt-1 text-sm text-slate-500">{project.objective}</p>
+            <article data-testid="project-card" key={project.id} className={`rounded-2xl border p-4 ${theme === 'light' ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-black">{project.name}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{project.objective}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    title="Visualizar projeto"
+                    aria-label="Visualizar projeto"
+                    data-testid="project-view-button"
+                    onClick={() => setViewing(project)}
+                    className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <button
+                    title="Editar projeto"
+                    aria-label="Editar projeto"
+                    data-testid="project-edit-button"
+                    onClick={() => {
+                      setEditing(project);
+                      setOpenForm(true);
+                    }}
+                    className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    title="Excluir projeto"
+                    aria-label="Excluir projeto"
+                    data-testid="project-delete-button"
+                    disabled={deletingId === project.id}
+                    onClick={() => handleDeleteProject(project)}
+                    className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 disabled:opacity-50 dark:border-red-900/40"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  <Link
+                    to={`/projects/${project.id}`}
+                    title="Abrir workspace"
+                    aria-label="Abrir workspace"
+                    data-testid="project-open-workspace-button"
+                    className="rounded-lg bg-brand-600 p-2 text-white hover:bg-brand-500"
+                  >
+                    <FolderOpen size={14} />
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  title="Visualizar projeto"
-                  aria-label="Visualizar projeto"
-                  data-testid="project-view-button"
-                  onClick={() => setViewing(project)}
-                  className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
-                >
-                  <Eye size={14} />
-                </button>
-                <button
-                  title="Editar projeto"
-                  aria-label="Editar projeto"
-                  data-testid="project-edit-button"
-                  onClick={() => {
-                    setEditing(project);
-                    setOpenForm(true);
-                  }}
-                  className="rounded-lg border border-slate-300/70 p-2 text-slate-500 hover:text-brand-500 dark:border-slate-700"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  title="Excluir projeto"
-                  aria-label="Excluir projeto"
-                  data-testid="project-delete-button"
-                  disabled={deletingId === project.id}
-                  onClick={() => handleDeleteProject(project)}
-                  className="rounded-lg border border-red-200/70 p-2 text-red-500 hover:text-red-600 disabled:opacity-50 dark:border-red-900/40"
-                >
-                  <Trash2 size={14} />
-                </button>
-                <Link
-                  to={`/projects/${project.id}`}
-                  title="Abrir workspace"
-                  aria-label="Abrir workspace"
-                  data-testid="project-open-workspace-button"
-                  className="rounded-lg bg-brand-600 p-2 text-white hover:bg-brand-500"
-                >
-                  <FolderOpen size={14} />
-                </Link>
-              </div>
-            </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
-                <p className="font-semibold text-slate-500">Cliente</p>
-                <p>{project.clientName || '-'}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
+                  <p className="font-semibold text-slate-500">Cliente</p>
+                  <p>{project.clientName || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
+                  <p className="font-semibold text-slate-500">Status</p>
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(project.status, theme)}`}>
+                    {project.status}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
+                  <p className="font-semibold text-slate-500">Fase</p>
+                  <p>{project.phase || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
+                  <p className="font-semibold text-slate-500">Saúde</p>
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getHealthTone(project.health, theme)}`}>
+                    {project.health || '-'}
+                  </span>
+                </div>
               </div>
-              <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
-                <p className="font-semibold text-slate-500">Status</p>
-                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(project.status, theme)}`}>
-                  {project.status}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
-                <p className="font-semibold text-slate-500">Fase</p>
-                <p>{project.phase || '-'}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700">
-                <p className="font-semibold text-slate-500">Saude</p>
-                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getHealthTone(project.health, theme)}`}>
-                  {project.health || '-'}
-                </span>
-              </div>
-            </div>
 
-            <div className="mt-3 text-xs text-slate-500">
-              <p>Responsavel: {project.responsible || '-'}</p>
-              <p>Atualizado: {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : '-'}</p>
-            </div>
-          </article>
+              <div className="mt-3 text-xs text-slate-500">
+                <p>Responsável: {project.responsible || '-'}</p>
+                <p>Atualizado: {project.lastUpdate ? new Date(project.lastUpdate).toLocaleString('pt-BR') : '-'}</p>
+              </div>
+            </article>
           ))}
         </section>
       )}
@@ -310,11 +308,11 @@ export const Projects: React.FC = () => {
                 <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.clientName || '-'}</p>
               </div>
               <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
-                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Descricao</p>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Descrição</p>
                 <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.description || '-'}</p>
               </div>
               <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
-                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Proximo passo</p>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Próximo passo</p>
                 <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.nextStep || '-'}</p>
               </div>
             </div>
