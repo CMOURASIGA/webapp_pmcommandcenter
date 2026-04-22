@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildGoogleAuthUrl } from '../../../backend/auth/google-auth-service';
 
 const readState = (req: VercelRequest) => {
   if (req.method === 'GET') {
@@ -25,6 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const state = readState(req);
+    const { buildGoogleAuthUrl } = await import('../../../backend/auth/google-auth-service');
     const authUrl = buildGoogleAuthUrl(state);
     res.status(200).json({ authUrl });
   } catch (error) {
