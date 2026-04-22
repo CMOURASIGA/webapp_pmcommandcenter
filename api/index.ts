@@ -1,21 +1,21 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import authGoogleUrlHandler from '../api_handlers/auth/google/url';
-import authGoogleCallbackHandler from '../api_handlers/auth/google/callback';
-import authLogoutHandler from '../api_handlers/auth/logout';
-import authMeHandler from '../api_handlers/auth/me';
-import clientsIndexHandler from '../api_handlers/clients/index';
-import clientsByIdHandler from '../api_handlers/clients/[id]';
-import googleContextHandler from '../api_handlers/google/context';
-import googleProvisionHandler from '../api_handlers/google/provision';
-import projectsIndexHandler from '../api_handlers/projects/index';
-import projectsByIdHandler from '../api_handlers/projects/[id]';
-import projectsArtifactsHandler from '../api_handlers/projects/[id]/artifacts';
-import projectsHistoryHandler from '../api_handlers/projects/[id]/history';
-import projectsShareHandler from '../api_handlers/projects/[id]/share';
-import projectsMembersIndexHandler from '../api_handlers/projects/[id]/members/index';
-import projectsMembersByIdHandler from '../api_handlers/projects/[id]/members/[memberId]';
-import artifactsByIdHandler from '../api_handlers/artifacts/[id]';
-import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import authGoogleUrlHandler from '../api_handlers/auth/google/url.js';
+import authGoogleCallbackHandler from '../api_handlers/auth/google/callback.js';
+import authLogoutHandler from '../api_handlers/auth/logout.js';
+import authMeHandler from '../api_handlers/auth/me.js';
+import clientsIndexHandler from '../api_handlers/clients/index.js';
+import clientsByIdHandler from '../api_handlers/clients/[id].js';
+import googleContextHandler from '../api_handlers/google/context.js';
+import googleProvisionHandler from '../api_handlers/google/provision.js';
+import projectsIndexHandler from '../api_handlers/projects/index.js';
+import projectsByIdHandler from '../api_handlers/projects/[id].js';
+import projectsArtifactsHandler from '../api_handlers/projects/[id]/artifacts.js';
+import projectsHistoryHandler from '../api_handlers/projects/[id]/history.js';
+import projectsShareHandler from '../api_handlers/projects/[id]/share.js';
+import projectsMembersIndexHandler from '../api_handlers/projects/[id]/members/index.js';
+import projectsMembersByIdHandler from '../api_handlers/projects/[id]/members/[memberId].js';
+import artifactsByIdHandler from '../api_handlers/artifacts/[id].js';
+import artifactsVersionHandler from '../api_handlers/artifacts/[id]/version.js';
 
 type QueryValue = string | string[];
 type Query = Record<string, QueryValue>;
@@ -195,3 +195,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 export default handler;
+

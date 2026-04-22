@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json, ApiError } from '../../../../backend/http/api-handler';
-import { requireAuthContext } from '../../../../backend/auth/auth-context';
-import { requireProjectView } from '../../../../backend/services/authorization-service';
-import { prisma } from '../../../../backend/db/prisma';
+import { withApiHandler, json, ApiError } from '../../../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../../../backend/auth/auth-context.js';
+import { requireProjectView } from '../../../../backend/services/authorization-service.js';
+import { prisma } from '../../../../backend/db/prisma.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await requireAuthContext(req);

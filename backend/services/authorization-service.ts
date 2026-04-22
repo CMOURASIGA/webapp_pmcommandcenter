@@ -1,6 +1,6 @@
-import { ProjectRole } from '@prisma/client';
-import { prisma } from '../db/prisma';
-import { ApiError } from '../http/api-handler';
+﻿import { ProjectRole } from '@prisma/client';
+import { prisma } from '../db/prisma.js';
+import { ApiError } from '../http/api-handler.js';
 
 export const loadProjectAccess = async (projectId: string, userId: string, userEmail: string) => {
   const project = await prisma.project.findUnique({
@@ -58,3 +58,4 @@ export const requireProjectOwner = async (projectId: string, userId: string, use
   }
   return access;
 };
+

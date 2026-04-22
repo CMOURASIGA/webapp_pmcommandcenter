@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { buildGoogleAuthUrl } from '../../../backend/auth/google-auth-service';
-import { withApiHandler, parseBody, json } from '../../../backend/http/api-handler';
+import { buildGoogleAuthUrl } from '../../../backend/auth/google-auth-service.js';
+import { withApiHandler, parseBody, json } from '../../../backend/http/api-handler.js';
 
 const bodySchema = z
   .object({
@@ -20,3 +20,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET', 'POST'],
 });
+

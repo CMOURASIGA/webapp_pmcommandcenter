@@ -1,5 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json } from '../backend/http/api-handler';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withApiHandler, json } from '../backend/http/api-handler.js';
 
 async function handler(_req: VercelRequest, res: VercelResponse) {
   json(res, 200, {
@@ -12,3 +12,4 @@ async function handler(_req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET'],
 });
+

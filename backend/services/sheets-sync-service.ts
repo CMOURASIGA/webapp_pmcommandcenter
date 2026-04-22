@@ -1,6 +1,6 @@
-import { prisma } from '../db/prisma';
-import { loadOAuthClientForUser } from '../auth/google-auth-service';
-import { appendSheetRow } from './google-sheets-service';
+﻿import { prisma } from '../db/prisma.js';
+import { loadOAuthClientForUser } from '../auth/google-auth-service.js';
+import { appendSheetRow } from './google-sheets-service.js';
 
 const withSpreadsheetContext = async (
   userId: string,
@@ -191,3 +191,4 @@ export const syncArtifactToSheet = async (params: {
     });
   });
 };
+

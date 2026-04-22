@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../../backend/http/api-handler';
-import { requireAuthContext } from '../../../backend/auth/auth-context';
-import { requireProjectEdit, requireProjectView } from '../../../backend/services/authorization-service';
-import { prisma } from '../../../backend/db/prisma';
-import { recordAuditEvent } from '../../../backend/services/audit-service';
-import { syncArtifactToSheet } from '../../../backend/services/sheets-sync-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../../backend/auth/auth-context.js';
+import { requireProjectEdit, requireProjectView } from '../../../backend/services/authorization-service.js';
+import { prisma } from '../../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../../backend/services/audit-service.js';
+import { syncArtifactToSheet } from '../../../backend/services/sheets-sync-service.js';
 
 const createArtifactSchema = z.object({
   name: z.string().min(2).max(180),

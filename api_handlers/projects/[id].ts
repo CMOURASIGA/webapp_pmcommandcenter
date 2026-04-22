@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
-import { prisma } from '../../backend/db/prisma';
-import { requireProjectEdit, requireProjectOwner, requireProjectView } from '../../backend/services/authorization-service';
-import { recordAuditEvent } from '../../backend/services/audit-service';
-import { syncProjectToSheet } from '../../backend/services/sheets-sync-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
+import { prisma } from '../../backend/db/prisma.js';
+import { requireProjectEdit, requireProjectOwner, requireProjectView } from '../../backend/services/authorization-service.js';
+import { recordAuditEvent } from '../../backend/services/audit-service.js';
+import { syncProjectToSheet } from '../../backend/services/sheets-sync-service.js';
 
 const updateProjectSchema = z.object({
   name: z.string().min(2).max(180).optional(),

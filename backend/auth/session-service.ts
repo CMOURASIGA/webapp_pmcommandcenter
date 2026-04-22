@@ -1,12 +1,12 @@
-import crypto from 'node:crypto';
+﻿import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { env } from '../config/env';
-import { ApiError } from '../http/api-handler';
+import { env } from '../config/env.js';
+import { ApiError } from '../http/api-handler.js';
 
 const COOKIE_NAME = 'pmcc_session';
 
 const getPrisma = async () => {
-  const mod = await import('../db/prisma');
+  const mod = await import('../db/prisma.js');
   return mod.prisma;
 };
 
@@ -111,3 +111,4 @@ export const revokeSession = async (req: VercelRequest) => {
     where: { sessionTokenHash },
   });
 };
+

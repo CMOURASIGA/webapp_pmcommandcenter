@@ -1,8 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json, ApiError } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
-import { loadOAuthClientForUser } from '../../backend/auth/google-auth-service';
-import { ensureUserProvisioning } from '../../backend/services/provisioning-service';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withApiHandler, json, ApiError } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
+import { loadOAuthClientForUser } from '../../backend/auth/google-auth-service.js';
+import { ensureUserProvisioning } from '../../backend/services/provisioning-service.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await requireAuthContext(req);
@@ -29,3 +29,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['POST'],
 });
+

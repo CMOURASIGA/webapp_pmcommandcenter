@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import { env, ensureAuthEnv } from '../config/env';
+﻿import { google } from 'googleapis';
+import { env, ensureAuthEnv } from '../config/env.js';
 
 export type GoogleOAuthClient = InstanceType<typeof google.auth.OAuth2>;
 
@@ -12,7 +12,7 @@ const GOOGLE_SCOPES = [
 ];
 
 const getPrisma = async () => {
-  const mod = await import('../db/prisma');
+  const mod = await import('../db/prisma.js');
   return mod.prisma;
 };
 
@@ -131,3 +131,4 @@ export const loadOAuthClientForUser = async (userId: string) => {
 
   return client;
 };
+

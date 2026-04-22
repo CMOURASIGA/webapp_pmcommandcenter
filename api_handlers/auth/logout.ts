@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clearSessionCookie, revokeSession } from '../../backend/auth/session-service';
-import { withApiHandler, json } from '../../backend/http/api-handler';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { clearSessionCookie, revokeSession } from '../../backend/auth/session-service.js';
+import { withApiHandler, json } from '../../backend/http/api-handler.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   await revokeSession(req);
@@ -11,3 +11,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['POST'],
 });
+

@@ -1,6 +1,6 @@
-import { google } from 'googleapis';
-import { env } from '../config/env';
-import type { GoogleOAuthClient } from '../auth/google-auth-service';
+﻿import { google } from 'googleapis';
+import { env } from '../config/env.js';
+import type { GoogleOAuthClient } from '../auth/google-auth-service.js';
 
 const SHEET_MIME_TYPE = 'application/vnd.google-apps.spreadsheet';
 
@@ -215,3 +215,4 @@ export const appendSheetRow = async (params: {
     },
   });
 };
+

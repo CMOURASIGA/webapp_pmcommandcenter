@@ -1,6 +1,6 @@
-import { google } from 'googleapis';
-import { env } from '../config/env';
-import type { GoogleOAuthClient } from '../auth/google-auth-service';
+﻿import { google } from 'googleapis';
+import { env } from '../config/env.js';
+import type { GoogleOAuthClient } from '../auth/google-auth-service.js';
 
 const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 
@@ -183,3 +183,4 @@ export const revokeDriveFolderShare = async (params: {
     permissionId: permission.id,
   });
 };
+

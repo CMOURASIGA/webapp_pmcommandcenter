@@ -1,6 +1,6 @@
-import { prisma } from '../db/prisma';
-import { ensureRootDriveStructure } from './google-drive-service';
-import { appendSheetRow, ensureMasterSpreadsheet } from './google-sheets-service';
+﻿import { prisma } from '../db/prisma.js';
+import { ensureRootDriveStructure } from './google-drive-service.js';
+import { appendSheetRow, ensureMasterSpreadsheet } from './google-sheets-service.js';
 
 export const ensureUserProvisioning = async (params: {
   userId: string;
@@ -58,3 +58,4 @@ export const ensureUserProvisioning = async (params: {
 
   return context;
 };
+

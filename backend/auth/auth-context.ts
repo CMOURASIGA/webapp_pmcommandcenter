@@ -1,5 +1,5 @@
-import type { VercelRequest } from '@vercel/node';
-import { requireSession } from './session-service';
+﻿import type { VercelRequest } from '@vercel/node';
+import { requireSession } from './session-service.js';
 
 export const requireAuthContext = async (req: VercelRequest) => {
   const session = await requireSession(req);
@@ -11,3 +11,4 @@ export const requireAuthContext = async (req: VercelRequest) => {
     driveContext: session.user.driveContext,
   };
 };
+

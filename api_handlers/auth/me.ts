@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json } from '../../backend/http/api-handler';
-import { getSessionFromRequest } from '../../backend/auth/session-service';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withApiHandler, json } from '../../backend/http/api-handler.js';
+import { getSessionFromRequest } from '../../backend/auth/session-service.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const session = await getSessionFromRequest(req);
@@ -36,3 +36,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET'],
 });
+

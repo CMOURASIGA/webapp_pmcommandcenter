@@ -1,14 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PermissionLevel, ProjectRole, ShareEntityType, ShareType } from '@prisma/client';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../../backend/http/api-handler';
-import { requireAuthContext } from '../../../backend/auth/auth-context';
-import { requireProjectOwner } from '../../../backend/services/authorization-service';
-import { prisma } from '../../../backend/db/prisma';
-import { recordAuditEvent } from '../../../backend/services/audit-service';
-import { syncProjectMemberToSheet, syncShareToSheet } from '../../../backend/services/sheets-sync-service';
-import { loadOAuthClientForUser } from '../../../backend/auth/google-auth-service';
-import { shareDriveFolder } from '../../../backend/services/google-drive-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../../backend/auth/auth-context.js';
+import { requireProjectOwner } from '../../../backend/services/authorization-service.js';
+import { prisma } from '../../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../../backend/services/audit-service.js';
+import { syncProjectMemberToSheet, syncShareToSheet } from '../../../backend/services/sheets-sync-service.js';
+import { loadOAuthClientForUser } from '../../../backend/auth/google-auth-service.js';
+import { shareDriveFolder } from '../../../backend/services/google-drive-service.js';
 
 const bodySchema = z.object({
   email: z.string().email(),

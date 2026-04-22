@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { prisma } from '../db/prisma';
+﻿import { Prisma } from '@prisma/client';
+import { prisma } from '../db/prisma.js';
 
 export const recordAuditEvent = async (params: {
   actorUserId: string;
@@ -22,3 +22,4 @@ export const recordAuditEvent = async (params: {
     },
   });
 };
+

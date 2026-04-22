@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
-import { prisma } from '../../backend/db/prisma';
-import { recordAuditEvent } from '../../backend/services/audit-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
+import { prisma } from '../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../backend/services/audit-service.js';
 
 const updateClientSchema = z.object({
   name: z.string().min(2).max(150).optional(),

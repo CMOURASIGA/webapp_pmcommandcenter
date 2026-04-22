@@ -1,12 +1,12 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
-import { prisma } from '../../backend/db/prisma';
-import { recordAuditEvent } from '../../backend/services/audit-service';
-import { loadOAuthClientForUser } from '../../backend/auth/google-auth-service';
-import { ensureProjectFolderStructure } from '../../backend/services/google-drive-service';
-import { syncProjectToSheet } from '../../backend/services/sheets-sync-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
+import { prisma } from '../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../backend/services/audit-service.js';
+import { loadOAuthClientForUser } from '../../backend/auth/google-auth-service.js';
+import { ensureProjectFolderStructure } from '../../backend/services/google-drive-service.js';
+import { syncProjectToSheet } from '../../backend/services/sheets-sync-service.js';
 
 const createProjectSchema = z.object({
   clientId: z.string().min(1),
@@ -212,3 +212,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET', 'POST'],
 });
+

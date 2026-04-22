@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { withApiHandler, json } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await requireAuthContext(req);
@@ -13,3 +13,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET'],
 });
+

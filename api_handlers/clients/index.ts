@@ -1,10 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody } from '../../backend/http/api-handler';
-import { requireAuthContext } from '../../backend/auth/auth-context';
-import { prisma } from '../../backend/db/prisma';
-import { recordAuditEvent } from '../../backend/services/audit-service';
-import { syncClientToSheet } from '../../backend/services/sheets-sync-service';
+import { withApiHandler, json, parseBody } from '../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../backend/auth/auth-context.js';
+import { prisma } from '../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../backend/services/audit-service.js';
+import { syncClientToSheet } from '../../backend/services/sheets-sync-service.js';
 
 const createClientSchema = z.object({
   name: z.string().min(2).max(150),
@@ -98,3 +98,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET', 'POST'],
 });
+

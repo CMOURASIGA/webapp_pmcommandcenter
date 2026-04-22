@@ -1,5 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { env } from '../config/env';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { env } from '../config/env.js';
 
 export class ApiError extends Error {
   status: number;
@@ -128,3 +128,4 @@ export const withApiHandler = (handler: ApiHandler, options: HandlerOptions = {}
     }
   };
 };
+

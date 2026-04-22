@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PermissionLevel, ProjectRole } from '@prisma/client';
 import { z } from 'zod';
-import { withApiHandler, json, parseBody, ApiError } from '../../../../backend/http/api-handler';
-import { requireAuthContext } from '../../../../backend/auth/auth-context';
-import { requireProjectOwner } from '../../../../backend/services/authorization-service';
-import { prisma } from '../../../../backend/db/prisma';
-import { recordAuditEvent } from '../../../../backend/services/audit-service';
-import { loadOAuthClientForUser } from '../../../../backend/auth/google-auth-service';
-import { revokeDriveFolderShare } from '../../../../backend/services/google-drive-service';
+import { withApiHandler, json, parseBody, ApiError } from '../../../../backend/http/api-handler.js';
+import { requireAuthContext } from '../../../../backend/auth/auth-context.js';
+import { requireProjectOwner } from '../../../../backend/services/authorization-service.js';
+import { prisma } from '../../../../backend/db/prisma.js';
+import { recordAuditEvent } from '../../../../backend/services/audit-service.js';
+import { loadOAuthClientForUser } from '../../../../backend/auth/google-auth-service.js';
+import { revokeDriveFolderShare } from '../../../../backend/services/google-drive-service.js';
 
 const bodySchema = z.object({
   role: z.enum(['OWNER', 'EDITOR', 'VIEWER']),

@@ -1,15 +1,15 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import {
   exchangeCodeForTokens,
   readGoogleProfile,
   upsertGoogleCredentials,
   upsertUserFromGoogle,
-} from '../../../backend/auth/google-auth-service';
-import { createSession, setSessionCookie } from '../../../backend/auth/session-service';
-import { env } from '../../../backend/config/env';
-import { ensureUserProvisioning } from '../../../backend/services/provisioning-service';
-import { withApiHandler, parseBody, json, ApiError } from '../../../backend/http/api-handler';
+} from '../../../backend/auth/google-auth-service.js';
+import { createSession, setSessionCookie } from '../../../backend/auth/session-service.js';
+import { env } from '../../../backend/config/env.js';
+import { ensureUserProvisioning } from '../../../backend/services/provisioning-service.js';
+import { withApiHandler, parseBody, json, ApiError } from '../../../backend/http/api-handler.js';
 
 const bodySchema = z.object({
   code: z.string().min(10),
@@ -72,3 +72,4 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 export default withApiHandler(handler, {
   methods: ['GET', 'POST'],
 });
+
