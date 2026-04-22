@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getSessionFromRequest } from '../../backend/auth/session-service';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -12,7 +13,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { getSessionFromRequest } = await import('../../backend/auth/session-service');
     const session = await getSessionFromRequest(req);
 
     if (!session) {
