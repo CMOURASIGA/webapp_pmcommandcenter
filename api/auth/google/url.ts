@@ -11,6 +11,40 @@ const readState = (req: VercelRequest) => {
   return typeof state === 'string' && state.length > 0 ? state : undefined;
 };
 
+const requireEnv = (key: string) => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+};
+
+const buildAuthUrl = (state?: string) => {
+  const clientId = requireEnv('GOOGLE_CLIENT_ID');
+  const redirectUri = requireEnv('GOOGLE_REDIRECT_URI');
+
+  const scopes = [
+    'openid',
+    'email',
+    'profile',
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/spreadsheets',
+  ];
+
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  url.searchParams.set('client_id', clientId);
+  url.searchParams.set('redirect_uri', redirectUri);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', scopes.join(' '));
+  url.searchParams.set('access_type', 'offline');
+  url.searchParams.set('include_granted_scopes', 'true');
+  url.searchParams.set('prompt', 'consent');
+  if (state) {
+    url.searchParams.set('state', state);
+  }
+  return url.toString();
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'OPTIONS') {
@@ -24,8 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const state = readState(req);
-    const { buildGoogleAuthUrl } = await import('../../../backend/auth/google-auth-service');
-    const authUrl = buildGoogleAuthUrl(state);
+    const authUrl = buildAuthUrl(state);
     res.status(200).json({ authUrl });
   } catch (error) {
     console.error('[api/auth/google/url] unhandled error', error);
