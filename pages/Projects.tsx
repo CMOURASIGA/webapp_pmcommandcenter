@@ -315,6 +315,40 @@ export const Projects: React.FC = () => {
                 <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Próximo passo</p>
                 <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.nextStep || '-'}</p>
               </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Responsável</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.responsible || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Metodologia</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.methodology || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Status</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.status || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Saúde</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.health || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Fase</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.phase || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Data de início</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.startDate || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Data final prevista</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>{viewing.endDate || '-'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 md:col-span-2 ${theme === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-800/50'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Stakeholders</p>
+                <p className={theme === 'light' ? 'text-slate-800' : 'text-slate-100'}>
+                  {viewing.stakeholders && viewing.stakeholders.length > 0 ? viewing.stakeholders.join(', ') : '-'}
+                </p>
+              </div>
             </div>
           </div>
         </div>

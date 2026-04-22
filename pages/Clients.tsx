@@ -48,6 +48,8 @@ export const Clients: React.FC = () => {
           await backendApi.updateClient(editing.id, {
             name: values.name,
             description: values.description,
+            owner: values.owner,
+            notes: values.notes,
           });
           await syncFromApi();
         } else {
@@ -60,6 +62,8 @@ export const Clients: React.FC = () => {
           await backendApi.createClient({
             name: values.name,
             description: values.description,
+            owner: values.owner,
+            notes: values.notes,
           });
           await syncFromApi();
         } else {

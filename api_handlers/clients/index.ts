@@ -4,11 +4,14 @@ import { withApiHandler, json, parseBody } from '../../backend/http/api-handler.
 import { requireAuthContext } from '../../backend/auth/auth-context.js';
 import { prisma } from '../../backend/db/prisma.js';
 import { recordAuditEvent } from '../../backend/services/audit-service.js';
+import { decodeClientFields, encodeClientFields } from '../../backend/services/client-fields-service.js';
 import { syncClientToSheet } from '../../backend/services/sheets-sync-service.js';
 
 const createClientSchema = z.object({
   name: z.string().min(2).max(150),
   description: z.string().max(500).optional(),
+  owner: z.string().max(150).optional(),
+  notes: z.string().max(1000).optional(),
 });
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
@@ -40,19 +43,43 @@ async function handler(req: VercelRequest, res: VercelResponse) {
         updatedAt: 'desc',
       },
     });
-    json(res, 200, { clients });
+    json(res, 200, {
+      clients: clients.map((client) => {
+        const fields = decodeClientFields(client.description);
+        return {
+          ...client,
+          description: fields.description,
+          owner: fields.owner,
+          notes: fields.notes,
+        };
+      }),
+    });
     return;
   }
 
   if (req.method === 'POST') {
     const body = createClientSchema.parse(parseBody(req));
+    const encodedDescription = encodeClientFields({
+      description: body.description,
+      owner: body.owner,
+      notes: body.notes,
+    });
+
     const created = await prisma.client.create({
       data: {
         ownerUserId: auth.userId,
         name: body.name.trim(),
-        description: body.description?.trim() || null,
+        description: encodedDescription,
       },
     });
+
+    const parsedFields = decodeClientFields(created.description);
+    const clientResponse = {
+      ...created,
+      description: parsedFields.description,
+      owner: parsedFields.owner,
+      notes: parsedFields.notes,
+    };
 
     try {
       await recordAuditEvent({
@@ -76,7 +103,9 @@ async function handler(req: VercelRequest, res: VercelResponse) {
           ownerUserId: auth.userId,
           clientId: created.id,
           nome: created.name,
-          descricao: created.description,
+          descricao: parsedFields.description,
+          responsavel: parsedFields.owner,
+          observacoes: parsedFields.notes,
           createdBy: auth.email,
         }),
         8000,
@@ -90,7 +119,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    json(res, 201, { client: created });
+    json(res, 201, { client: clientResponse });
     return;
   }
 }

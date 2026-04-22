@@ -54,6 +54,8 @@ type ApiClient = {
   id: string;
   name: string;
   description?: string | null;
+  owner?: string | null;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -156,6 +158,8 @@ const mapClient = (item: ApiClient): Client => ({
   id: item.id,
   name: item.name,
   description: item.description || undefined,
+  owner: item.owner || undefined,
+  notes: item.notes || undefined,
   createdAt: item.createdAt,
   updatedAt: item.updatedAt,
 });
@@ -311,7 +315,7 @@ export const backendApi = {
     return response.clients.map(mapClient);
   },
 
-  async createClient(payload: { name: string; description?: string }) {
+  async createClient(payload: { name: string; description?: string; owner?: string; notes?: string }) {
     const response = await request<{ client: ApiClient }>('/api/clients', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -319,7 +323,7 @@ export const backendApi = {
     return mapClient(response.client);
   },
 
-  async updateClient(id: string, payload: { name?: string; description?: string }) {
+  async updateClient(id: string, payload: { name?: string; description?: string; owner?: string; notes?: string }) {
     const response = await request<{ client: ApiClient }>(`/api/clients/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),

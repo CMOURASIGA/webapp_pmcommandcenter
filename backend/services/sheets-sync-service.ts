@@ -23,6 +23,8 @@ export const syncClientToSheet = async (params: {
   clientId: string;
   nome: string;
   descricao?: string | null;
+  responsavel?: string | null;
+  observacoes?: string | null;
   createdBy: string;
 }) => {
   await withSpreadsheetContext(params.ownerUserId, async ({ auth, spreadsheetId }) => {
@@ -34,6 +36,8 @@ export const syncClientToSheet = async (params: {
         client_id: params.clientId,
         nome: params.nome,
         descricao: params.descricao || '',
+        responsavel: params.responsavel || '',
+        observacoes: params.observacoes || '',
         owner_user_id: params.ownerUserId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -16,7 +16,17 @@ const REQUIRED_SHEETS: Record<string, string[]> = {
     'created_at',
     'updated_at',
   ],
-  CLIENTES: ['client_id', 'nome', 'descricao', 'owner_user_id', 'created_at', 'updated_at', 'created_by'],
+  CLIENTES: [
+    'client_id',
+    'nome',
+    'descricao',
+    'responsavel',
+    'observacoes',
+    'owner_user_id',
+    'created_at',
+    'updated_at',
+    'created_by',
+  ],
   PROJETOS: [
     'project_id',
     'client_id',
