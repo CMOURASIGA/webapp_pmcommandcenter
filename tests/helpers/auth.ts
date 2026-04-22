@@ -40,13 +40,28 @@ export const clearDialogEvents = async (page: Page) => {
 
 export const loginLocal = async (page: Page) => {
   await page.goto('/#/');
-
-  const loginButton = page.getByTestId('login-local-button');
-  if (await loginButton.count()) {
-    await loginButton.click();
+  const appShellMarker = page.getByTestId('nav-inicio');
+  if ((await appShellMarker.count()) === 0) {
+    await page.evaluate(() => {
+      localStorage.setItem(
+        '7c-commander-auth',
+        JSON.stringify({
+          state: {
+            user: {
+              email: 'e2e.local@7c.test',
+              name: 'E2E Local',
+              provider: 'google',
+            },
+            loadingSession: false,
+          },
+          version: 0,
+        })
+      );
+    });
+    await page.reload();
   }
 
-  await expect(page.getByText('Workspace ativo')).toBeVisible();
+  await expect(page.getByTestId('nav-inicio')).toBeVisible();
 };
 
 export const bootLocalSession = async (page: Page) => {

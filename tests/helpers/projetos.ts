@@ -4,7 +4,8 @@ import { gotoRoute } from './auth';
 
 export const gotoProjects = async (page: Page) => {
   await gotoRoute(page, '/projects');
-  await expect(page.getByRole('heading', { name: 'Catalogo operacional' })).toBeVisible();
+  await expect(page.getByTestId('nav-projetos')).toBeVisible();
+  await expect(page.getByTestId('projects-new-button')).toBeVisible();
 };
 
 export const projectCard = (page: Page, projectName: string): Locator =>
