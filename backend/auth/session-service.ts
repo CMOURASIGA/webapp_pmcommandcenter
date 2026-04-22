@@ -1,10 +1,14 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { env } from '../config/env';
-import { prisma } from '../db/prisma';
 import { ApiError } from '../http/api-handler';
 
 const COOKIE_NAME = 'pmcc_session';
+
+const getPrisma = async () => {
+  const mod = await import('../db/prisma');
+  return mod.prisma;
+};
 
 const parseCookieHeader = (cookieHeader?: string) => {
   if (!cookieHeader) return new Map<string, string>();
@@ -35,6 +39,7 @@ const buildCookie = (name: string, value: string, expiresAt?: Date) => {
 };
 
 export const createSession = async (userId: string) => {
+  const prisma = await getPrisma();
   const rawToken = crypto.randomBytes(32).toString('base64url');
   const sessionTokenHash = hashSessionToken(rawToken);
   const expiresAt = new Date(Date.now() + env.sessionTtlHours * 60 * 60 * 1000);
@@ -64,6 +69,7 @@ export const getSessionFromRequest = async (req: VercelRequest) => {
   const rawToken = cookies.get(COOKIE_NAME);
   if (!rawToken) return null;
 
+  const prisma = await getPrisma();
   const sessionTokenHash = hashSessionToken(rawToken);
 
   const session = await prisma.session.findUnique({
@@ -99,6 +105,7 @@ export const revokeSession = async (req: VercelRequest) => {
   const cookies = parseCookieHeader(cookieHeader);
   const rawToken = cookies.get(COOKIE_NAME);
   if (!rawToken) return;
+  const prisma = await getPrisma();
   const sessionTokenHash = hashSessionToken(rawToken);
   await prisma.session.deleteMany({
     where: { sessionTokenHash },
