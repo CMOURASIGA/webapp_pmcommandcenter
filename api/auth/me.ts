@@ -1,5 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSessionFromRequest } from '../../backend/auth/session-service';
+import crypto from 'node:crypto';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+const parseCookieHeader = (cookieHeader?: string) => {
+  if (!cookieHeader) return new Map<string, string>();
+  const map = new Map<string, string>();
+  cookieHeader.split(';').forEach((part) => {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (!rawKey) return;
+    map.set(rawKey, decodeURIComponent(rawValue.join('=')));
+  });
+  return map;
+};
+
+const hashSessionToken = (token: string) => {
+  const secret = process.env.SESSION_SECRET || 'dev-session-secret';
+  return crypto.createHmac('sha256', secret).update(token).digest('hex');
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -13,9 +32,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const session = await getSessionFromRequest(req);
+    const cookies = parseCookieHeader(req.headers.cookie);
+    const rawToken = cookies.get('pmcc_session');
+    if (!rawToken) {
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+
+    const sessionTokenHash = hashSessionToken(rawToken);
+    const session = await prisma.session.findUnique({
+      where: { sessionTokenHash },
+      include: {
+        user: {
+          include: {
+            driveContext: true,
+          },
+        },
+      },
+    });
 
     if (!session) {
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+
+    if (session.expiresAt.getTime() <= Date.now()) {
+      await prisma.session.delete({ where: { id: session.id } }).catch(() => null);
       res.status(401).json({ authenticated: false });
       return;
     }
