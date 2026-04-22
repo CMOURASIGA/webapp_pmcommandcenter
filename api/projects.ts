@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const mod = await import('../api_handlers/projects/index');
+    const mod = await import('../api_handlers/projects/index.js');
     await mod.default(req, res);
   } catch (error) {
     console.error('[api/projects] entrypoint failure', error);
