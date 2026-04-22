@@ -1,6 +1,5 @@
 import { google } from 'googleapis';
 import { env, ensureAuthEnv } from '../config/env';
-import { prisma } from '../db/prisma';
 
 export type GoogleOAuthClient = InstanceType<typeof google.auth.OAuth2>;
 
@@ -11,6 +10,11 @@ const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/spreadsheets',
 ];
+
+const getPrisma = async () => {
+  const mod = await import('../db/prisma');
+  return mod.prisma;
+};
 
 export const createOAuthClient = (): GoogleOAuthClient => {
   ensureAuthEnv();
@@ -55,6 +59,7 @@ export const upsertUserFromGoogle = async (profile: {
   name: string;
   picture: string | null;
 }) => {
+  const prisma = await getPrisma();
   const user = await prisma.user.upsert({
     where: { googleSub: profile.googleSub },
     update: {
@@ -85,6 +90,7 @@ export const upsertGoogleCredentials = async (
     token_type?: string | null;
   }
 ) => {
+  const prisma = await getPrisma();
   await prisma.googleCredential.upsert({
     where: { userId },
     update: {
@@ -106,6 +112,7 @@ export const upsertGoogleCredentials = async (
 };
 
 export const loadOAuthClientForUser = async (userId: string) => {
+  const prisma = await getPrisma();
   const credentials = await prisma.googleCredential.findUnique({
     where: { userId },
   });
